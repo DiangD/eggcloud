@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.qzh.eggcloud.mapper.FileFolderMapper">
+    <select id="getFoldersByParentId" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file
+        where parent_id = #{parentId}
+          and is_folder = 1
+          and deleted = 0;
+    </select>
+
+    <select id="findFileFolderByParentId" resultType="com.qzh.eggcloud.model.SysFile">
+        select id, name, parent_id, store_id, is_folder
+        from sys_file
+        where store_id = #{storeId}
+          and parent_id = #{parentId}
+          and is_folder = 1
+          and deleted = 0;
+    </select>
+
+    <insert id="insertFileFolders" keyProperty="folder_id" useGeneratedKeys="true">
+        insert into sys_file
+                (name, parent_id, store_id, is_folder)
+                values
+        <foreach collection="folders" item="folder" separator=",">
+            (#{folder.name}, #{folder.parentId}, #{folder.storeId}, 1)
+        </foreach>
+    </insert>
+</mapper>

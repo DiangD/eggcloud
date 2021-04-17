@@ -1,0 +1,407 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.qzh.eggcloud.mapper.FileMapper">
+    <update id="deleteFileOrFolderByParentId">
+        update sys_file
+        set deleted   = 1,
+            modify_at = now()
+        where store_Id = #{file.storeId}
+          and parent_id = #{file.parentId}
+          and is_folder = #{file.isFolder}
+    </update>
+
+    <insert id="insertFileOrFolder" keyProperty="file.id" useGeneratedKeys="true">
+        insert into sys_file
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="file.name != null and file.name != ''">
+                name,
+            </if>
+            <if test="file.isFolder != null">
+                is_folder,
+            </if>
+            <if test="file.md5 != null and file.md5 != ''">
+                md5,
+            </if>
+            <if test="file.extension != null and file.extension != ''">
+                extension,
+            </if>
+            <if test="file.storeId != null">
+                store_id,
+            </if>
+            <if test="file.parentId != null">
+                parent_id,
+            </if>
+            <if test="file.size != null">
+                size,
+            </if>
+            <if test="file.group != null and file.group != ''">
+                `group`,
+            </if>
+            <if test="file.path != null and file.path != ''">
+                path,
+            </if>
+            <if test="file.url != null and file.url != ''">
+                url,
+            </if>
+            <if test="file.deleted != null">
+                deleted,
+            </if>
+            <if test="file.contentType!=null and file.contentType!=''">
+                content_type,
+            </if>
+            <if test="file.thumbnail!=null and file.thumbnail!=''">
+                thumbnail,
+            </if>
+        </trim>
+        <trim prefix="values(" suffix=")" suffixOverrides=",">
+            <if test="file.name != null and file.name != ''">
+                #{file.name},
+            </if>
+            <if test="file.isFolder != null">
+                #{file.isFolder},
+            </if>
+            <if test="file.md5 != null and file.md5 != ''">
+                #{file.md5},
+            </if>
+            <if test="file.extension != null and file.extension != ''">
+                #{file.extension},
+            </if>
+            <if test="file.storeId != null">
+                #{file.storeId},
+            </if>
+            <if test="file.parentId != null">
+                #{file.parentId},
+            </if>
+            <if test="file.size != null">
+                #{file.size},
+            </if>
+            <if test="file.group != null and file.group != ''">
+                #{file.group},
+            </if>
+            <if test="file.path != null and file.path != ''">
+                #{file.path},
+            </if>
+            <if test="file.url != null and file.url != ''">
+                #{file.url},
+            </if>
+            <if test="file.deleted != null">
+                #{file.deleted},
+            </if>
+            <if test="file.contentType!=null and file.contentType!=''">
+                #{file.contentType},
+            </if>
+            <if test="file.thumbnail != null and file.thumbnail != ''">
+                #{file.thumbnail},
+            </if>
+        </trim>
+    </insert>
+
+    <insert id="insertFiles" keyProperty="id" useGeneratedKeys="true">
+        insert into sys_file (name, md5, extension, store_Id, parent_id, size,
+                              `group`, path, url,content_type,thumbnail)
+                values
+        <foreach collection="files" item="file" index="index" separator=",">
+            (#{file.name}, #{file.md5}, #{file.extension},
+             #{file.storeId}, #{file.parentId}, #{file.size},
+             #{file.group}, #{file.path}, #{file.url},#{file.contentType},#{file.thumbnail})
+        </foreach>
+    </insert>
+
+    <update id="updateFileOrFolder">
+        update sys_file
+        <set>
+            <if test="file.name != null and file.name != ''">
+                name = #{file.name},
+            </if>
+            <if test="file.md5 != null and file.md5 != ''">
+                md5 = #{file.md5},
+            </if>
+            <if test="file.extension != null and file.extension != ''">
+                extension = #{file.extension},
+            </if>
+            <if test="file.parentId != null">
+                parent_id = #{file.parentId},
+            </if>
+            <if test="file.size != null">
+                size = #{file.size},
+            </if>
+            <if test="file.group != null and file.group != ''">
+                `group` = #{file.group},
+            </if>
+            <if test="file.path != null and file.path != ''">
+                path = #{file.path},
+            </if>
+            <if test="file.url != null and file.url != ''">
+                url = #{file.url},
+            </if>
+            <if test="file.modifyAt != null">
+                modify_at = #{file.modifyAt},
+            </if>
+            <if test="file.deleted != null">
+                deleted =#{file.deleted},
+            </if>
+            <if test="file.contentType != null and file.contentType != ''">
+                content_type = #{file.contentType},
+            </if>
+            <if test="file.thumbnail != null and file.thumbnail != ''">
+                thumbnail = #{file.thumbnail}
+            </if>
+        </set>
+        where id = #{file.id}
+          and store_id = #{file.storeId}
+    </update>
+
+    <select id="findFilesByParentId" resultType="com.qzh.eggcloud.model.SysFile">
+        select name,
+        md5,
+        extension,
+        store_Id,
+        parent_id,
+        size,
+        `group`,
+        path,
+        url,
+        content_type,
+        thumbnail
+        from sys_file
+        where store_Id = #{storeId}
+        and parent_id = #{parentId}
+        and is_folder = 0
+        and deleted = 0
+    </select>
+
+    <delete id="removeFileByParentId">
+        delete
+        from sys_file
+        where store_id = #{storeId}
+        and parent_id = #{parentId}
+        and is_folder = 0
+    </delete>
+
+    <update id="deleteFileById">
+        update sys_file
+        set deleted = 1,
+        modify_at = now()
+        where id = #{id}
+        and store_id = #{storeId}
+    </update>
+
+    <delete id="removeFileOrFolderById">
+        delete
+        from sys_file
+        where id = #{id}
+        and store_id = #{storeId}
+    </delete>
+
+    <select id="findFilesOrFoldersByNameAndParentId" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file
+        where store_id = #{file.storeId}
+        and parent_id = #{file.parentId}
+        and name = #{file.name}
+        and is_folder = #{file.isFolder}
+        and deleted = 0
+    </select>
+
+    <select id="findFileOrFolderById" resultType="com.qzh.eggcloud.model.SysFile">
+        select id,
+        name,
+        is_folder,
+        md5,
+        extension,
+        store_id,
+        create_at,
+        modify_at,
+        parent_id,
+        size,
+        `group`,
+        path,
+        url,
+        deleted,
+        content_type,
+        thumbnail
+        from sys_file
+        where id = #{id}
+        and store_id = #{storeId}
+        and deleted = 0
+    </select>
+
+    <select id="findFilesByTypeByStoreId" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file s
+        where store_id = #{storeId}
+        and deleted = 0
+        and is_folder = 0
+        and (select sf.deleted from sys_file sf where sf.id = s.parent_id) = s.deleted
+    </select>
+
+    <select id="findFilesFoldersDeletedByQuery" resultType="com.qzh.eggcloud.model.auth.dto.DeletedFile">
+        select id as file_id ,name as filename ,
+        content_type,extension,modify_at as delete_at,size,is_folder
+        from sys_file
+       <where>
+           <if test="query.storeId != null">
+               store_id = #{query.storeId}
+           </if>
+           <if test="1==1">
+               and deleted = 1
+               and modify_at > date_sub(now(), interval 10 day)
+           </if>
+           <if test="query.sortProp != null and query.sortProp != ''">
+               order by ${query.sortProp}
+           </if>
+           <if test="query.sortOrder != null and query.sortOrder != ''">
+               ${query.sortOrder}
+           </if>
+       </where>
+    </select>
+
+    <update id="restoreFileOrFolderById">
+        update sys_file
+        set deleted = 0,
+        modify_at = now()
+        where id = #{id}
+        and store_id = #{storeId}
+    </update>
+
+    <select id="findFilesFoldersShouldRemove" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file
+        where deleted = 1
+          and date_sub(curdate(), interval 30 day) > modify_at
+    </select>
+
+    <delete id="removeFileAndFolderByParentId">
+        delete
+        from sys_file
+        where parent_id = #{parentId}
+    </delete>
+
+
+    <select id="findFileOrFolderByIdDeleted" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file
+        where id = #{id}
+        and store_id = #{storeId}
+        and deleted = 1
+    </select>
+
+    <delete id="removeAllOver30Days">
+        delete
+        from sys_file
+        where deleted = 1
+          and date_sub(now(), interval 30 day) > modify_at
+    </delete>
+
+    <select id="findFoldersCountByStoreId" resultType="int">
+        select count(*)
+        from sys_file
+        where store_id = #{storeId}
+        and is_folder = 1
+    </select>
+
+    <select id="findFilesCountByStoreIdAndType" resultType="int">
+        select count(*)
+        from sys_file
+        where store_id = #{storeId}
+        and is_folder = 0
+    </select>
+
+    <select id="findFilesCountByStoreId" resultType="int">
+        select count(*)
+        from sys_file
+        where store_id = #{storeId}
+        and is_folder = 0
+    </select>
+
+    <select id="findFilesAndFoldersByParentId" resultType="com.qzh.eggcloud.model.SysFile">
+        select id, name, is_folder, extension,create_at, modify_at, parent_id, size, content_type
+        from sys_file
+        <where>
+            <if test="query.storeId != null">
+                store_id = #{query.storeId}
+            </if>
+            <if test="query.folderId != null">
+                and parent_id = #{query.folderId}
+            </if>
+            <if test="query.queryFileType != null and query.queryFileType != ''">
+                and instr(content_type,#{query.queryFileType})>0
+            </if>
+            <if test="1 == 1">
+                and deleted = 0
+            </if>
+            <if test="query.sortProp != null and query.sortProp != ''">
+                order by ${query.sortProp}
+            </if>
+            <if test="query.sortOrder != null and query.sortOrder != ''">
+                ${query.sortOrder}
+            </if>
+        </where>
+    </select>
+
+    <select id="findFilesBySearchKey" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file
+       <where>
+           <if test="search.storeId != null">
+               store_id = #{search.storeId}
+           </if>
+           <if test="search.searchKey != null and search.searchKey != ''">
+               and instr(name,#{search.searchKey})>0
+           </if>
+           <if test="1 == 1">
+               and deleted = 0
+           </if>
+           <if test="search.sortProp != null and search.sortProp != ''">
+               order by ${search.sortProp}
+           </if>
+           <if test="search.sortOrder != null and search.sortOrder != ''">
+               ${search.sortOrder}
+           </if>
+       </where>
+    </select>
+
+    <select id="findFoldersByStoreId" resultType="com.qzh.eggcloud.model.SysFile">
+        select *
+        from sys_file
+        where store_id = #{storeId}
+        and is_folder = 1;
+    </select>
+
+    <update id="deleteFileByIds">
+        update sys_file set deleted =1 , modify_at = now() where id in
+        <foreach collection="fileIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+        and store_id = #{storeId}
+    </update>
+
+    <select id="findFoldersByParentId" resultType="com.qzh.eggcloud.model.SysFile">
+        select id,name,is_folder from sys_file
+        where store_id = #{storeId}
+        and parent_id = #{parentId}
+        and is_folder =1
+        and deleted = 0
+    </select>
+
+    <update id="updateFilesParentId">
+        update sys_file
+        set parent_id = #{parentId}
+        where
+        store_id = #{storeId} and
+        id in
+        <foreach collection="fileIds" open="(" close=")" separator="," item="id">
+            #{id}
+        </foreach>
+    </update>
+
+    <update id="restoreFileOrFolderByIds">
+        update sys_file
+        set deleted = 0
+        where store_id=#{storeId}
+        and id in
+        <foreach collection="fileIds" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </update>
+</mapper>

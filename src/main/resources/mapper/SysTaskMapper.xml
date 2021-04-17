@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.qzh.eggcloud.mapper.SysTaskMapper">
+    <select id="findById" resultType="com.qzh.eggcloud.model.SysTask">
+        select *
+        from sys_task
+        where id = #{id}
+        limit 1;
+    </select>
+
+    <select id="findAll" resultType="com.qzh.eggcloud.model.SysTask">
+        select *
+        from sys_task
+        order by create_at;
+    </select>
+
+    <insert id="insertSysTask" keyProperty="task.id" useGeneratedKeys="true">
+        insert into sys_task(job_name, description, cron_expression, bean_class, job_status, job_group, create_user,
+                             create_at, update_user, update_at)
+        VALUES (#{task.jobName}, #{task.description}, #{task.cronExpression}, #{task.beanClass}, #{task.jobStatus},
+                #{task.jobGroup}, #{task.createUser}, #{task.createAt}, #{task.updateAt})
+    </insert>
+
+    <update id="updateSysTask">
+        update sys_task
+        <set>
+            <if test="task.jobName != null and task.jobName != ''">
+                job_name = #{task.jobName,jdbcType=VARCHAR},
+            </if>
+            <if test="task.description != null">
+                description = #{task.description,jdbcType=VARCHAR},
+            </if>
+            <if test="task.cronExpression != null and task.cronExpression != ''">
+                cron_expression = #{task.cronExpression,jdbcType=VARCHAR},
+            </if>
+            <if test="task.beanClass != null and task.beanClass != ''">
+                bean_class = #{task.beanClass,jdbcType=VARCHAR},
+            </if>
+            <if test="task.jobStatus != null and task.jobStatus != ''">
+                job_status = #{task.jobStatus,jdbcType=TINYINT},
+            </if>
+            <if test="task.jobGroup != null and task.jobGroup != ''">
+                job_group = #{task.jobGroup,jdbcType=VARCHAR},
+            </if>
+            <if test="task.createUser != null and task.createUser != ''">
+                create_user = #{task.createUser,jdbcType=VARCHAR},
+            </if>
+            <if test="task.createAt != null">
+                create_at= #{task.createAt,jdbcType=TIMESTAMP},
+            </if>
+            <if test="task.updateUser != null">
+                update_user = #{task.updateUser,jdbcType=VARCHAR},
+            </if>
+            <if test="task.updateAt != null">
+                update_at = #{task.updateAt,jdbcType=TIMESTAMP},
+            </if>
+        </set>
+        where id = #{task.id}
+    </update>
+
+    <delete id="deleteById">
+        delete
+        from sys_task
+        where id = #{id}
+    </delete>
+
+    <delete id="batchDelete">
+        delete
+        from sys_task where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="findBySearchKey" resultType="com.qzh.eggcloud.model.SysTask">
+        select *
+        from sys_task
+        where instr(job_name, #{key}) > 0
+           or instr(description, #{key}) > 0
+           or instr(bean_class, #{key}) > 0
+           or instr(job_group, #{key}) > 0
+        order by create_at desc
+    </select>
+</mapper>
