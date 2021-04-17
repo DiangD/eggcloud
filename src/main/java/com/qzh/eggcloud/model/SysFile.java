@@ -90,7 +90,7 @@ public class SysFile extends FileBase {
     /**
      * 路径
      */
-    private String path;
+    private String remotePath;
 
 
     /**

@@ -37,8 +37,8 @@
             <if test="file.group != null and file.group != ''">
                 `group`,
             </if>
-            <if test="file.path != null and file.path != ''">
-                path,
+            <if test="file.remotePath != null and file.remotePath != ''">
+                remote_path,
             </if>
             <if test="file.url != null and file.url != ''">
                 url,
@@ -78,8 +78,8 @@
             <if test="file.group != null and file.group != ''">
                 #{file.group},
             </if>
-            <if test="file.path != null and file.path != ''">
-                #{file.path},
+            <if test="file.remotePath != null and file.remotePath != ''">
+                #{file.remotePath},
             </if>
             <if test="file.url != null and file.url != ''">
                 #{file.url},
@@ -98,12 +98,12 @@
 
     <insert id="insertFiles" keyProperty="id" useGeneratedKeys="true">
         insert into sys_file (name, md5, extension, store_Id, parent_id, size,
-                              `group`, path, url,content_type,thumbnail)
+                              `group`, remote_path, url,content_type,thumbnail)
                 values
         <foreach collection="files" item="file" index="index" separator=",">
             (#{file.name}, #{file.md5}, #{file.extension},
-             #{file.storeId}, #{file.parentId}, #{file.size},
-             #{file.group}, #{file.path}, #{file.url},#{file.contentType},#{file.thumbnail})
+            #{file.storeId}, #{file.parentId}, #{file.size},
+            #{file.group}, #{file.remotePath}, #{file.url},#{file.contentType},#{file.thumbnail})
         </foreach>
     </insert>
 
@@ -128,8 +128,8 @@
             <if test="file.group != null and file.group != ''">
                 `group` = #{file.group},
             </if>
-            <if test="file.path != null and file.path != ''">
-                path = #{file.path},
+            <if test="file.remotePath != null and file.remotePath != ''">
+                remote_path = #{file.remotePath},
             </if>
             <if test="file.url != null and file.url != ''">
                 url = #{file.url},
@@ -159,7 +159,7 @@
         parent_id,
         size,
         `group`,
-        path,
+        remote_path,
         url,
         content_type,
         thumbnail
@@ -215,7 +215,7 @@
         parent_id,
         size,
         `group`,
-        path,
+        remote_path,
         url,
         deleted,
         content_type,

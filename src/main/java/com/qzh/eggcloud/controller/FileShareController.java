@@ -106,7 +106,7 @@ public class FileShareController {
         response.setHeader(HttpHeaders.CONNECTION, "close");
         response.setHeader("Content-Disposition", "attachment; filename=" + sysFile.getName());
         response.setContentType(FileContentTypeUtil.getContentType(sysFile.getExtension()));
-        EggFileUtil.downloadFile(sysFile.getGroup(), sysFile.getPath(), response.getOutputStream());
+        EggFileUtil.downloadFile(sysFile.getGroup(), sysFile.getRemotePath(), response.getOutputStream());
         return null;
     }
 

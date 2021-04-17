@@ -1,7 +1,6 @@
 package com.qzh.eggcloud.controller;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.http.HttpUtil;
 import com.github.pagehelper.PageInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -147,7 +146,7 @@ public class SysFileController {
                     .name(filename)
                     .group(fileInfo.getGroup())
                     .url(fileInfo.getUrl())
-                    .path(fileInfo.getPath())
+                    .remotePath(fileInfo.getPath())
                     .isFolder(false)
                     .md5(fileInfo.getMd5())
                     .storeId(userDetail.getStoreId())
@@ -271,7 +270,7 @@ public class SysFileController {
         response.setContentType(sysFile.getContentType());
         Map<String, String> params = Maps.newHashMap();
         params.put("group", sysFile.getGroup());
-        params.put("file", sysFile.getPath());
+        params.put("file", sysFile.getRemotePath());
         EggFileUtil.downloadFile(params, response.getOutputStream());
         return null;
     }
