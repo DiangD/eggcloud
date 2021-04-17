@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.qzh.eggcloud.mapper.ShareFileMapper">
+    <insert id="insertShareFile">
+        insert into share_file
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            access_key, file_id, store_id,
+            <if test="shareFile.isFolder != null">
+                is_folder,
+            </if>
+            <if test="shareFile.hasVerify != null">
+                has_verify,
+            </if>
+            <if test="shareFile.code != null and shareFile.code != ''">
+                code,
+            </if>
+            <if test="shareFile.expireAt != null">
+                expire_at,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            #{shareFile.accessKey}, #{shareFile.fileId}, #{shareFile.storeId},
+            <if test="shareFile.isFolder != null">
+                #{shareFile.isFolder},
+            </if>
+            <if test="shareFile.hasVerify != null">
+                #{shareFile.hasVerify},
+            </if>
+            <if test="shareFile.code != null and shareFile.code != ''">
+                #{shareFile.code},
+            </if>
+            <if test="shareFile.expireAt != null">
+                #{shareFile.expireAt}
+            </if>
+        </trim>
+    </insert>
+
+    <select id="findShareFileByAccessKey" resultType="com.qzh.eggcloud.model.auth.dto.ShareDTO">
+        select *
+        from share_file
+        where access_key = #{accessKey}
+        limit 1
+    </select>
+
+    <delete id="deleteShareFileByAccessKey">
+        delete
+        from share_file
+        where access_key = #{accessKey}
+          and store_id = #{storeId}
+    </delete>
+
+    <select id="findShareFilesByStoreId" resultType="com.qzh.eggcloud.model.ShareFile">
+        select *
+        from share_file
+        where store_id = #{storeId}
+          and expire_at > now()
+        union
+        select *
+        from share_file
+        where store_id = #{storeId}
+          and expire_at is null
+        order by create_at desc
+    </select>
+
+    <select id="findShareFileByFileId" resultType="com.qzh.eggcloud.model.ShareFile">
+        select *
+        from share_file
+        where file_id = #{fileId}
+          and store_id = #{storeId}
+        limit 1
+    </select>
+
+    <delete id="deleteByExpireAt">
+        delete
+        from share_file
+        where now() > expire_at
+          and expire_at is not null
+    </delete>
+
+    <select id="findShareByQuery" resultType="com.qzh.eggcloud.model.auth.dto.ShareDTO">
+        select sf.*,s.name as filename,s.content_type,s.extension
+        from share_file sf left join sys_file s on sf.file_id = s.id
+        <where>
+            <if test="query.storeId != null">
+                sf.store_id = #{query.storeId}
+            </if>
+            <if test="1==1">
+                and s.deleted = 0
+                and sf.expire_at is null or sf.expire_at>now()
+
+            </if>
+            <if test="query.sortProp != null and query.sortProp != ''">
+                order by ${query.sortProp}
+            </if>
+            <if test="query.sortOrder != null and query.sortOrder != ''">
+                ${query.sortOrder}
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteShareFileByAccessKeys">
+        delete
+        from share_file
+        where access_key in
+            <foreach collection="accessKeys" item="accessKey" separator="," open="(" close=")">
+                #{accessKey}
+            </foreach>
+       and store_id = #{storeId}
+    </delete>
+</mapper>

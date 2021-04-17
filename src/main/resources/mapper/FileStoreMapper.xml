@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.qzh.eggcloud.mapper.FileStoreMapper">
+    <insert id="insertFileStore" keyProperty="fileStore.storeId" useGeneratedKeys="true">
+        insert into file_store
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="fileStore.occupy != null">
+                occupy,
+            </if>
+            <if test="fileStore.size != null">
+                size,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="fileStore.occupy != null">
+                #{fileStore.occupy},
+            </if>
+            <if test="fileStore.size != null">
+                #{fileStore.size},
+            </if>
+        </trim>
+    </insert>
+
+    <select id="findFileStoreById" resultType="com.qzh.eggcloud.model.FileStore">
+        select fs.*, su.user_id
+        from file_store fs
+                     left join sys_user su on fs.store_id = su.store_id
+        where fs.store_id = #{storeId}
+    </select>
+
+    <update id="updateFileStore">
+        update file_store
+        <set>
+            <if test="fileStore.occupy != null">
+                occupy = #{fileStore.occupy},
+            </if>
+            <if test="fileStore.size != null">
+                size = #{fileStore.size}
+            </if>
+        </set>
+        where store_id = #{fileStore.storeId}
+    </update>
+
+    <update id="subOccupy">
+        update file_store
+        set occupy = occupy - #{fileSize}
+        where store_id = #{store_id}
+    </update>
+
+    <update id="incrOccupy">
+        update file_store
+        set occupy = occupy + #{fileSize}
+        where store_id = #{store_id}
+    </update>
+
+    <update id="updateSize">
+        update file_store
+        set size = #{size}
+        where store_id = #{store_id}
+    </update>
+
+    <select id="findFileStoreByUserId" resultType="com.qzh.eggcloud.model.FileStore">
+        select fs.*, su.user_id
+        from file_store fs
+                     left join sys_user su on fs.store_id = su.store_id
+        where su.user_id = #{userId}
+    </select>
+
+    <select id="findUserStoreVos" resultType="com.qzh.eggcloud.model.vo.UserStoreVo">
+        select su.user_id, su.username, fs.store_id, fs.occupy, fs.size
+        from file_store fs
+                     left join sys_user su on fs.store_id = su.store_id
+        <where>
+            <if test="query.userId != null">
+                su.user_id = #{query.userId}
+            </if>
+            <if test="query.username != null and query.username != ''">
+                and instr(su.username, #{query.username}) > 0
+            </if>
+            <if test="query.storeId != null">
+                and fs.store_id = #{query.storeId}
+            </if>
+        </where>
+    </select>
+</mapper>
