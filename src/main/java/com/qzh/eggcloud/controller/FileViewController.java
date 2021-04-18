@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @Author DiangD
  * @Date 2021/4/16
  * @Version 1.0
- * @Description
+ * @Description 预览控制器
  **/
 @RestController
 public class FileViewController {
@@ -47,7 +47,7 @@ public class FileViewController {
 
     @GetMapping("/preview/{userId}/{fileId}/{filename}")
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
-    public ResponseEntity<Object> previewFile(@PathVariable Long userId, @PathVariable Long fileId,@PathVariable String filename, String token) {
+    public ResponseEntity<Object> previewFile(@PathVariable Long userId, @PathVariable Long fileId, @PathVariable String filename, String token) {
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
         SysFile file = sysFileService.findFileOrFolder(fileId, userDetail.getStoreId());
         if (file.getIsFolder()) {
@@ -56,6 +56,7 @@ public class FileViewController {
         byte[] content = HttpUtil.downloadBytes(file.getUrl());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "fileName=" + file.getName())
+                .header(HttpHeaders.ACCEPT_RANGES, "bytes")
                 .header(HttpHeaders.CONTENT_TYPE, file.getContentType())
                 .header(HttpHeaders.CONNECTION, "close")
                 .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(content.length))
