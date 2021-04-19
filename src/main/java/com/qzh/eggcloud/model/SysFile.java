@@ -44,10 +44,6 @@ public class SysFile extends FileBase {
      */
     private String md5;
 
-    /**
-     * 文件类型
-     */
-    private Integer type;
 
     /**
      * 创建时间或上传时间
@@ -71,15 +67,18 @@ public class SysFile extends FileBase {
      * 后缀名
      */
     private String extension;
+
+
+    /**
+     * 抽象路径
+     */
+    private String path;
+
+
     /**
      * 仓库id
      */
     private Long storeId;
-
-    /**
-     * 父文件夹id
-     */
-    private Long parentId;
 
 
     /**
@@ -105,7 +104,13 @@ public class SysFile extends FileBase {
     private Integer deleted;
 
 
+    /**
+     * 文件类型
+     */
     private String contentType;
 
+    /**
+     * 文件缩略图
+     */
     private String thumbnail;
 }

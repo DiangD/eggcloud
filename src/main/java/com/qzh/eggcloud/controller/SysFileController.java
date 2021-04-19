@@ -2,7 +2,6 @@ package com.qzh.eggcloud.controller;
 
 import cn.hutool.core.io.FileUtil;
 import com.github.pagehelper.PageInfo;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.qzh.eggcloud.auth.SysUserDetail;
 import com.qzh.eggcloud.common.SystemConst;
@@ -42,7 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -83,7 +81,7 @@ public class SysFileController {
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
     public ResponseEntity<JsonResult<Object>> copyFile(@RequestParam Long userId, @RequestParam(defaultValue = "0") Long parentId, Long[] fileIds) throws BaseException {
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
-        sysFileService.copyFileOrFolder(userDetail.getStoreId(), parentId, Arrays.asList(fileIds));
+        sysFileService.copyFiles(userDetail.getStoreId(), parentId, Arrays.asList(fileIds));
         return ResponseEntity.ok(RespUtil.success(null));
     }
 
@@ -113,7 +111,6 @@ public class SysFileController {
                 SysFile.builder().storeId(userDetail.getStoreId())
                         .name(file.getOriginalFilename())
                         .isFolder(false)
-                        .parentId(parentId)
                         .build())) {
             filename = EggFileUtil.generateFileName(file.getOriginalFilename());
         } else {
@@ -150,7 +147,6 @@ public class SysFileController {
                     .isFolder(false)
                     .md5(fileInfo.getMd5())
                     .storeId(userDetail.getStoreId())
-                    .parentId(parentId)
                     .contentType(contentType)
                     .extension(FileUtil.extName(file.getOriginalFilename()))
                     .thumbnail(thumbnail)
@@ -174,9 +170,8 @@ public class SysFileController {
 
     /**
      * 将BufferedImage转换为InputStream
-     *
-     * @param image
-     * @return
+     * @param image 图片
+     * @return 输入流
      */
     public InputStream bufferedImageToInputStream(BufferedImage image) {
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -187,15 +182,6 @@ public class SysFileController {
             log.error("提示:", e);
         }
         return null;
-    }
-
-    @GetMapping("/type")
-    @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
-    public ResponseEntity<JsonResult<Object>> filesByContentType(@RequestParam Integer typeId, @RequestParam Long userId,
-                                                                 PageEntity pageEntity) {
-        SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
-        PageInfo<SysFile> page = sysFileService.findTypeFiles(userDetail.getStoreId(), typeId, pageEntity);
-        return ResponseEntity.ok(RespUtil.success(page));
     }
 
     @GetMapping("/trash/list")
@@ -212,7 +198,7 @@ public class SysFileController {
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
     public ResponseEntity<JsonResult<Object>> removeFileOrFolder(@RequestParam Long userId, Long[] fileIds) {
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
-        sysFileService.removeFileOrFolder(Arrays.asList(fileIds), userDetail.getStoreId());
+        sysFileService.removeFiles(Arrays.asList(fileIds), userDetail.getStoreId());
         return ResponseEntity.ok(RespUtil.success(null));
     }
 
@@ -236,23 +222,12 @@ public class SysFileController {
     }
 
     @GetMapping("/page")
-    @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
-    public ResponseEntity<JsonResult<Object>> getUserStorePage(Long userId, FileQuery fileQuery, PageEntity pageEntity) {
+    @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#fileQuery.userId)}")
+    public ResponseEntity<JsonResult<Object>> getUserStorePage(FileQuery fileQuery, PageEntity pageEntity) {
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
         fileQuery.setStoreId(userDetail.getStoreId());
         PageInfo<SysFile> page = sysFileService.findUserStorePage(fileQuery, pageEntity);
         return ResponseEntity.ok(RespUtil.success(page));
-    }
-
-    @GetMapping("/pre/dir")
-    @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
-    public ResponseEntity<Object> getDirPath(Long userId, @RequestParam(defaultValue = "0") Long folderId) {
-        SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
-        if (folderId == 0) {
-            return ResponseEntity.ok(RespUtil.success(Lists.newArrayList()));
-        }
-        List<SysFile> dirs = sysFileService.findDirPath(folderId, userDetail.getStoreId());
-        return ResponseEntity.ok(RespUtil.success(dirs));
     }
 
     @GetMapping("/download/{userId}/{fileId}")
@@ -273,5 +248,14 @@ public class SysFileController {
         params.put("file", sysFile.getRemotePath());
         EggFileUtil.downloadFile(params, response.getOutputStream());
         return null;
+    }
+
+    @GetMapping("/search/open")
+    @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#query.userId)}")
+    public ResponseEntity<Object> searchOpen(FileQuery query,PageEntity pageEntity) throws BaseException {
+        SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
+        query.setStoreId(userDetail.getStoreId());
+        PageInfo<SysFile> pageInfo = sysFileService.searchOpen(query, pageEntity);
+        return ResponseEntity.ok(RespUtil.success(pageInfo));
     }
 }

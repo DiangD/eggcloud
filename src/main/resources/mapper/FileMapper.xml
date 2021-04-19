@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.qzh.eggcloud.mapper.FileMapper">
-    <update id="deleteFileOrFolderByParentId">
-        update sys_file
-        set deleted   = 1,
-            modify_at = now()
-        where store_Id = #{file.storeId}
-          and parent_id = #{file.parentId}
-          and is_folder = #{file.isFolder}
-    </update>
 
     <insert id="insertFileOrFolder" keyProperty="file.id" useGeneratedKeys="true">
         insert into sys_file
@@ -27,9 +19,6 @@
             </if>
             <if test="file.storeId != null">
                 store_id,
-            </if>
-            <if test="file.parentId != null">
-                parent_id,
             </if>
             <if test="file.size != null">
                 size,
@@ -52,6 +41,9 @@
             <if test="file.thumbnail!=null and file.thumbnail!=''">
                 thumbnail,
             </if>
+            <if test="file.path != null and file.path != ''">
+                path,
+            </if>
         </trim>
         <trim prefix="values(" suffix=")" suffixOverrides=",">
             <if test="file.name != null and file.name != ''">
@@ -68,9 +60,6 @@
             </if>
             <if test="file.storeId != null">
                 #{file.storeId},
-            </if>
-            <if test="file.parentId != null">
-                #{file.parentId},
             </if>
             <if test="file.size != null">
                 #{file.size},
@@ -93,21 +82,25 @@
             <if test="file.thumbnail != null and file.thumbnail != ''">
                 #{file.thumbnail},
             </if>
+            <if test="file.path != null and file.path != ''">
+                #{file.path},
+            </if>
         </trim>
     </insert>
 
     <insert id="insertFiles" keyProperty="id" useGeneratedKeys="true">
-        insert into sys_file (name, md5, extension, store_Id, parent_id, size,
-                              `group`, remote_path, url,content_type,thumbnail)
+        insert into sys_file (name,is_folder, md5, extension, store_Id,path, size,
+                              `group`, remote_path, url,content_type,thumbnail,create_at,modify_at)
                 values
-        <foreach collection="files" item="file" index="index" separator=",">
-            (#{file.name}, #{file.md5}, #{file.extension},
-            #{file.storeId}, #{file.parentId}, #{file.size},
-            #{file.group}, #{file.remotePath}, #{file.url},#{file.contentType},#{file.thumbnail})
+        <foreach collection="files" item="file"  separator=",">
+            (#{file.name},#{file.isFolder}, #{file.md5}, #{file.extension},
+            #{file.storeId},#{file.path}, #{file.size},
+            #{file.group}, #{file.remotePath}, #{file.url},#{file.contentType},
+            #{file.thumbnail},#{file.createAt},#{file.modifyAt})
         </foreach>
     </insert>
 
-    <update id="updateFileOrFolder">
+    <update id="updateFile">
         update sys_file
         <set>
             <if test="file.name != null and file.name != ''">
@@ -118,9 +111,6 @@
             </if>
             <if test="file.extension != null and file.extension != ''">
                 extension = #{file.extension},
-            </if>
-            <if test="file.parentId != null">
-                parent_id = #{file.parentId},
             </if>
             <if test="file.size != null">
                 size = #{file.size},
@@ -144,7 +134,10 @@
                 content_type = #{file.contentType},
             </if>
             <if test="file.thumbnail != null and file.thumbnail != ''">
-                thumbnail = #{file.thumbnail}
+                thumbnail = #{file.thumbnail},
+            </if>
+            <if test="file.path != null and file.path != ''">
+                path=#{file.path},
             </if>
         </set>
         where id = #{file.id}
@@ -156,7 +149,6 @@
         md5,
         extension,
         store_Id,
-        parent_id,
         size,
         `group`,
         remote_path,
@@ -165,7 +157,6 @@
         thumbnail
         from sys_file
         where store_Id = #{storeId}
-        and parent_id = #{parentId}
         and is_folder = 0
         and deleted = 0
     </select>
@@ -174,7 +165,6 @@
         delete
         from sys_file
         where store_id = #{storeId}
-        and parent_id = #{parentId}
         and is_folder = 0
     </delete>
 
@@ -186,24 +176,24 @@
         and store_id = #{storeId}
     </update>
 
-    <delete id="removeFileOrFolderById">
+    <delete id="removeById">
         delete
         from sys_file
         where id = #{id}
         and store_id = #{storeId}
     </delete>
 
-    <select id="findFilesOrFoldersByNameAndParentId" resultType="com.qzh.eggcloud.model.SysFile">
+    <select id="findFilesOrFoldersByNameAndParentId" resultType="java.lang.Integer">
         select *
         from sys_file
         where store_id = #{file.storeId}
-        and parent_id = #{file.parentId}
         and name = #{file.name}
+        and path = #{file.path}
         and is_folder = #{file.isFolder}
         and deleted = 0
     </select>
 
-    <select id="findFileOrFolderById" resultType="com.qzh.eggcloud.model.SysFile">
+    <select id="findById" resultType="com.qzh.eggcloud.model.SysFile">
         select id,
         name,
         is_folder,
@@ -212,27 +202,18 @@
         store_id,
         create_at,
         modify_at,
-        parent_id,
         size,
         `group`,
         remote_path,
         url,
         deleted,
         content_type,
-        thumbnail
+        thumbnail,
+        path
         from sys_file
         where id = #{id}
         and store_id = #{storeId}
         and deleted = 0
-    </select>
-
-    <select id="findFilesByTypeByStoreId" resultType="com.qzh.eggcloud.model.SysFile">
-        select *
-        from sys_file s
-        where store_id = #{storeId}
-        and deleted = 0
-        and is_folder = 0
-        and (select sf.deleted from sys_file sf where sf.id = s.parent_id) = s.deleted
     </select>
 
     <select id="findFilesFoldersDeletedByQuery" resultType="com.qzh.eggcloud.model.auth.dto.DeletedFile">
@@ -265,21 +246,15 @@
     </update>
 
     <select id="findFilesFoldersShouldRemove" resultType="com.qzh.eggcloud.model.SysFile">
-        select *
+        select id,store_id,is_folder,create_at,modify_at,deleted
         from sys_file
         where deleted = 1
-          and date_sub(curdate(), interval 30 day) > modify_at
+          and date_sub(curdate(), interval 30 day) > modify_at limit 10000
     </select>
-
-    <delete id="removeFileAndFolderByParentId">
-        delete
-        from sys_file
-        where parent_id = #{parentId}
-    </delete>
 
 
     <select id="findFileOrFolderByIdDeleted" resultType="com.qzh.eggcloud.model.SysFile">
-        select *
+        select id, name, is_folder, store_id, size, deleted, path
         from sys_file
         where id = #{id}
         and store_id = #{storeId}
@@ -314,15 +289,15 @@
         and is_folder = 0
     </select>
 
-    <select id="findFilesAndFoldersByParentId" resultType="com.qzh.eggcloud.model.SysFile">
-        select id, name, is_folder, extension,create_at, modify_at, parent_id, size, content_type
+    <select id="findByQuery" resultType="com.qzh.eggcloud.model.SysFile">
+        select id, name, is_folder, extension,create_at, modify_at, path, size, content_type
         from sys_file
         <where>
             <if test="query.storeId != null">
                 store_id = #{query.storeId}
             </if>
-            <if test="query.folderId != null">
-                and parent_id = #{query.folderId}
+            <if test="query.currentDirectory != null and query.currentDirectory!=''">
+                and path = #{query.currentDirectory}
             </if>
             <if test="query.queryFileType != null and query.queryFileType != ''">
                 and instr(content_type,#{query.queryFileType})>0
@@ -376,25 +351,6 @@
         and store_id = #{storeId}
     </update>
 
-    <select id="findFoldersByParentId" resultType="com.qzh.eggcloud.model.SysFile">
-        select id,name,is_folder from sys_file
-        where store_id = #{storeId}
-        and parent_id = #{parentId}
-        and is_folder =1
-        and deleted = 0
-    </select>
-
-    <update id="updateFilesParentId">
-        update sys_file
-        set parent_id = #{parentId}
-        where
-        store_id = #{storeId} and
-        id in
-        <foreach collection="fileIds" open="(" close=")" separator="," item="id">
-            #{id}
-        </foreach>
-    </update>
-
     <update id="restoreFileOrFolderByIds">
         update sys_file
         set deleted = 0
@@ -404,4 +360,100 @@
             #{id}
         </foreach>
     </update>
+
+    <select id="findByPathPrefix" resultType="com.qzh.eggcloud.model.SysFile">
+        select * from sys_file where store_id =#{storeId}
+        and path like concat(#{path},'%')
+    </select>
+
+    <select id="findCountNameByPath" resultType="java.lang.Integer">
+        select count(name) from sys_file
+        where store_id = #{storeId}
+        and path = #{path}
+        and name=#{name}
+    </select>
+
+    <update id="updateFiles">
+        <foreach collection="files" item="file" open="" close="" separator=";">
+            update sys_file
+            <set>
+                <if test="file.name != null and file.name != ''">
+                    name = #{file.name},
+                </if>
+                <if test="file.isFolder!=null">
+                    is_folder = #{file.isFolder},
+                </if>
+                <if test="file.md5 != null and file.md5 != ''">
+                    md5 = #{file.md5},
+                </if>
+                <if test="file.extension != null and file.extension != ''">
+                    extension = #{file.extension},
+                </if>
+                <if test="file.size != null">
+                    size = #{file.size},
+                </if>
+                <if test="file.group != null and file.group != ''">
+                    `group` = #{file.group},
+                </if>
+                <if test="file.remotePath != null and file.remotePath != ''">
+                    remote_path = #{file.remotePath},
+                </if>
+                <if test="file.url != null and file.url != ''">
+                    url = #{file.url},
+                </if>
+                <if test="file.modifyAt != null">
+                    modify_at = #{file.modifyAt},
+                </if>
+                <if test="file.deleted != null">
+                    deleted =#{file.deleted},
+                </if>
+                <if test="file.contentType != null and file.contentType != ''">
+                    content_type = #{file.contentType},
+                </if>
+                <if test="file.thumbnail != null and file.thumbnail != ''">
+                    thumbnail = #{file.thumbnail},
+                </if>
+                <if test="file.path != null and file.path != ''">
+                    path = #{file.path},
+                </if>
+            </set>
+            where
+            id=#{file.id}
+            and store_id = #{storeId}
+        </foreach>
+    </update>
+
+    <select id="findFolderByPath" resultType="com.qzh.eggcloud.model.SysFile">
+        select id,
+               name,
+               is_folder,
+               store_id,
+               create_at,
+               modify_at,
+               size,
+               path,
+               deleted
+        from sys_file
+        where store_id = #{storeId}
+        and path = #{path}
+        and is_folder = 1
+        and deleted = 0
+    </select>
+
+    <delete id="removeByIds">
+        delete  from sys_file
+       where store_id = #{storeId}
+        and id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <delete id="removeByIdsNotStore">
+        delete  from  sys_file
+        where id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
 </mapper>

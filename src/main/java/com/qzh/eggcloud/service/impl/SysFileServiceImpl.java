@@ -3,23 +3,27 @@ package com.qzh.eggcloud.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.qzh.eggcloud.common.config.CloudConfig;
 import com.qzh.eggcloud.common.exception.BaseException;
 import com.qzh.eggcloud.common.resp.ErrorCode;
+import com.qzh.eggcloud.model.SysFile;
 import com.qzh.eggcloud.model.auth.dto.DeletedFile;
 import com.qzh.eggcloud.model.query.DeletedQuery;
 import com.qzh.eggcloud.model.query.FileQuery;
 import com.qzh.eggcloud.model.query.FileSearch;
 import com.qzh.eggcloud.model.query.PageEntity;
-import com.qzh.eggcloud.model.SysFile;
 import com.qzh.eggcloud.service.FileStoreService;
 import com.qzh.eggcloud.service.SysFileService;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 /**
  * @ClassName SysFileServiceImpl
@@ -34,14 +38,6 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
     @Autowired
     private FileStoreService storeService;
 
-    /**
-     * @param file 文件
-     *             删除文件或文件夹
-     */
-    @Override
-    public void deleteFileOrFolder(SysFile file) {
-        fileMapper.deleteFileById(file.getId(), file.getStoreId());
-    }
 
     @Override
     public void deleteFilesOrFolders(Long storeId, List<Long> fileIds) {
@@ -59,7 +55,7 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
             throw new BaseException(ErrorCode.DuplicateFolderOrFile);
         }
         file.setModifyAt(LocalDateTime.now());
-        fileMapper.updateFileOrFolder(file);
+        fileMapper.updateFile(file);
     }
 
     /**
@@ -82,19 +78,6 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
     }
 
     /**
-     * @param storeId    仓库id
-     * @param type       文件类型
-     * @param pageEntity 页数
-     * @return 分页
-     */
-    @Override
-    public PageInfo<SysFile> findTypeFiles(Long storeId, Integer type, PageEntity pageEntity) {
-        PageHelper.startPage(pageEntity.getPageNum(), pageEntity.getPageSize());
-        List<SysFile> files = fileMapper.findFilesByTypeByStoreId(storeId, type);
-        return new PageInfo<>(files);
-    }
-
-    /**
      * @param query
      * @param pageEntity 页数
      * @return 分页
@@ -111,15 +94,15 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
      */
     @Override
     @Transactional
-    public void removeFileOrFolder(List<Long> fileIds, Long storeId) {
+    public void removeFiles(List<Long> fileIds, Long storeId) {
         for (Long id : fileIds) {
             SysFile file = fileMapper.findFileOrFolderByIdDeleted(id, storeId);
             if (file.getIsFolder()) {
                 storeService.removeFileFolder(file);
-                return;
+            } else {
+                fileMapper.removeById(file.getId(), file.getStoreId());
+                fileStoreMapper.subOccupy(file.getSize(), file.getStoreId());
             }
-            fileStoreMapper.subOccupy(file.getSize(), file.getStoreId());
-            fileMapper.removeFileOrFolderById(file.getId(), file.getStoreId());
         }
     }
 
@@ -148,56 +131,142 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
      */
     @Override
     public void removeFilesDeletedOver30Days() {
-        fileMapper.removeAllOver30Days();
+        List<SysFile> files = fileMapper.findFilesFoldersShouldRemove();
+        List<Long> ids = Lists.newArrayList();
+        for (SysFile file : files) {
+            ids.add(file.getId());
+        }
+        fileMapper.removeByIdsNotStore(ids);
     }
 
     @Override
     public PageInfo<SysFile> findUserStorePage(FileQuery fileQuery, PageEntity pageEntity) {
+        fileQuery.setCurrentDirectory(getUserDirectory(fileQuery.getCurrentDirectory()));
+        if (StringUtils.isNotEmpty(fileQuery.getQueryFileType())) {
+            fileQuery.setCurrentDirectory(null);
+        }
+        if (fileQuery.getFolderId() != null) {
+            fileQuery.setCurrentDirectory(null);
+        }
+
         PageHelper.startPage(pageEntity.getPageNum(), pageEntity.getPageSize());
-        List<SysFile> files = fileMapper.findFilesAndFoldersByParentId(fileQuery);
+        List<SysFile> files = fileMapper.findByQuery(fileQuery);
         return PageInfo.of(files);
     }
 
     @Override
-    public SysFile findFileOrFolder(Long id, Long storeId) {
-        return fileMapper.findFileOrFolderById(id, storeId);
-    }
-
-    @Override
-    public List<SysFile> findDirPath(Long folderId, Long storeId) {
-        ArrayList<SysFile> files = Lists.newArrayList();
-        travelDir(folderId, storeId, files);
-        Collections.reverse(files);
-        return files;
+    public PageInfo<SysFile> searchOpen(FileQuery query, PageEntity pageEntity) throws BaseException {
+        SysFile folder = null;
+        if (query.getFolderId() != null) {
+            folder = fileMapper.findById(query.getFolderId(), query.getStoreId());
+        }
+        if (folder == null) {
+            throw new BaseException(ErrorCode.Fail);
+        }
+        query.setCurrentDirectory(getUserDirectory(folder.getPath() + folder.getName()));
+        PageHelper.startPage(pageEntity.getPageNum(), pageEntity.getPageSize());
+        List<SysFile> list = fileMapper.findByQuery(query);
+        return PageInfo.of(list);
     }
 
     @Override
     public List<SysFile> getFolderTree(Long storeId, Long parentId) {
-        return fileMapper.findFoldersByParentId(storeId, parentId);
+        String path;
+        if (parentId == null || parentId == 0L) {
+            path = "/";
+        } else {
+            SysFile folder = fileMapper.findById(parentId, storeId);
+            path = getUserDirectory(folder.getPath() + folder.getName());
+            return fileMapper.findFolderByPath(path, storeId);
+        }
+        return fileMapper.findFolderByPath(path, storeId);
     }
 
     @Override
-    public void moveFiles(Long storeId, Long parentId, List<Long> fileIds) throws BaseException {
-        List<SysFile> list = Lists.newArrayList();
-        for (Long fileId : fileIds) {
-            SysFile file = fileMapper.findFileOrFolderById(fileId, storeId);
-            list.add(file);
-        }
-        if (checkMoveOrCopyPath(storeId, parentId, list)) {
-            throw new BaseException(ErrorCode.Fail.getCode(), "不能将文件移动到自身或其子目录下");
-        }
-        fileMapper.updateFilesParentId(storeId, parentId, fileIds);
+    public SysFile findFileOrFolder(Long id, Long storeId) {
+        return fileMapper.findById(id, storeId);
     }
 
-    private void travelDir(Long folderId, Long storeId, List<SysFile> list) {
-        SysFile folder = fileMapper.findFileOrFolderById(folderId, storeId);
-        if (folder == null) {
-            return;
+    /**
+     * 移动文件
+     */
+    @Override
+    @Transactional
+    public void moveFiles(Long storeId, Long parentId, List<Long> fileIds) throws BaseException {
+        for (Long fileId : fileIds) {
+            move(storeId, parentId, fileId);
         }
-        list.add(folder);
-        if (folder.getParentId() != null) {
-            travelDir(folder.getParentId(), storeId, list);
+    }
+
+
+    private void move(Long storeId, Long to, Long from) throws BaseException {
+        SysFile fromFile = fileMapper.findById(from, storeId);
+        String fromPath = getRelativePathByFileId(fromFile);
+        SysFile toFile = fileMapper.findById(to, storeId);
+        String toPath = getRelativePathByFileId(toFile);
+        if (fromFile != null) {
+            SysFile moveFile = moveFileEntity(fromFile, toPath);
+            if (isExistsOfToCopy(moveFile, toPath)) {
+                throw new BaseException(ErrorCode.Fail.getCode(), "所选目录已存在该文件(夹)!");
+            }
+            if (fromFile.getIsFolder()) {
+                fileMapper.updateFile(moveFile);
+                List<SysFile> fromList = fileMapper.findByPathPrefix(fromPath, storeId);
+                fromList = fromList.stream().peek(file -> {
+                    String oldPath = file.getPath();
+                    String newPath = toPath + oldPath.substring(1);
+                    moveFileEntity(file, newPath);
+                }).collect(Collectors.toList());
+                if (fromList.size() > 0) {
+                    fileMapper.updateFiles(storeId, fromList);
+                }
+            } else {
+                fileMapper.updateFile(moveFile);
+            }
         }
+    }
+
+    private void copy(Long storeId, Long to, Long from) throws BaseException {
+        SysFile fromFile = fileMapper.findById(from, storeId);
+        String fromPath = getRelativePathByFileId(fromFile);
+        SysFile toFile = fileMapper.findById(to, storeId);
+        String toPath = getRelativePathByFileId(toFile);
+        if (fromFile != null) {
+            SysFile copyFile = copyFileEntity(fromFile, toPath);
+            if (isExistsOfToCopy(copyFile, toPath)) {
+                throw new BaseException(ErrorCode.Fail.getCode(), "所选目录已存在该文件(夹)!");
+            }
+            if (fromFile.getIsFolder()) {
+                addFileOrFolder(copyFile);
+                List<SysFile> fromList = fileMapper.findByPathPrefix(fromPath, storeId);
+                AtomicLong size = new AtomicLong(0L);
+                fromList = fromList.stream().peek(file -> {
+                    String oldPath = file.getPath();
+                    String newPath = toPath + oldPath.substring(1);
+                    copyFileEntity(file, newPath);
+                    size.addAndGet(file.getSize());
+                }).collect(Collectors.toList());
+                if (!storeService.hasEnoughSpace(storeId, size.get())) {
+                    throw new BaseException(ErrorCode.NoEnoughSpace);
+                }
+                if (fromList.size() > 0) {
+                    fileMapper.insertFiles(fromList);
+                    fileStoreMapper.incrOccupy(size.get(), storeId);
+                }
+            } else {
+                addFileOrFolder(copyFile);
+            }
+        }
+    }
+
+    /**
+     * @param file   文件
+     * @param toPath 目标路径
+     * @return 该路径是否存在同名文件
+     */
+    private boolean isExistsOfToCopy(SysFile file, String toPath) {
+        int count = fileMapper.findCountNameByPath(toPath, file.getName(), file.getStoreId());
+        return count >= 1;
     }
 
 
@@ -205,84 +274,13 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
      * @param storeId 仓库Id
      * @param fileIds 文件id列表
      * @throws BaseException 自定义异常
+     *                       复制文件
      */
     @Transactional
-    public void copyFileOrFolder(Long storeId, Long parentId, List<Long> fileIds) throws BaseException {
-        List<SysFile> list = Lists.newArrayList();
+    public void copyFiles(Long storeId, Long parentId, List<Long> fileIds) throws BaseException {
         for (Long fileId : fileIds) {
-            SysFile file = fileMapper.findFileOrFolderById(fileId, storeId);
-            list.add(file);
+            copy(storeId, parentId, fileId);
         }
-
-        if (checkMoveOrCopyPath(storeId, parentId, list)) {
-            throw new BaseException(ErrorCode.Fail.getCode(), "不能将文件复制到自身或其子目录下");
-        }
-
-        for (SysFile file : list) {
-            file.setParentId(parentId);
-            if (file.getIsFolder()) {
-                storeService.copyFileFolder(file);
-                return;
-            }
-            copyFile(file);
-        }
-    }
-
-    public boolean checkMoveOrCopyPath(Long storeId, Long parentId, List<SysFile> files) {
-        Set<Long> set = Sets.newHashSet();
-        for (SysFile file : files) {
-            if (file.getIsFolder()) {
-                set.add(file.getId());
-                Set<Long> childrenIds = getFolderAllChildrenIds(storeId, file.getId());
-                set.addAll(childrenIds);
-            }
-        }
-        return set.contains(parentId);
-    }
-
-    public Set<Long> getFolderAllChildrenIds(Long storeId, Long parentId) {
-        HashSet<SysFile> fileHashSet = Sets.newHashSet();
-        recurFolderChildren(storeId, parentId, fileHashSet);
-        HashSet<Long> idSet = Sets.newHashSet();
-        fileHashSet.forEach(folder -> {
-            idSet.add(folder.getId());
-        });
-        return idSet;
-    }
-
-    private void recurFolderChildren(Long storeId, Long parentId, Set<SysFile> set) {
-        if (parentId == null) {
-            return;
-        }
-        List<SysFile> folders = fileMapper.findFoldersByParentId(storeId, parentId);
-        if (folders == null || folders.size() <= 0) {
-            return;
-        }
-        set.addAll(folders);
-        folders.forEach(folder -> {
-            recurFolderChildren(storeId, folder.getId(), set);
-        });
-    }
-//
-
-
-    /**
-     * @param file 文件
-     * @throws BaseException 自定义异常
-     */
-    public void copyFile(SysFile file) throws BaseException {
-        if (isExistFilenameOrFolderName(file)) {
-            throw new BaseException(ErrorCode.DuplicateFolderOrFile);
-        }
-
-        SysFile fileById = fileMapper.findFileOrFolderById(file.getId(), file.getStoreId());
-        fileById.setParentId(file.getParentId());
-        fileById.setName(file.getName());
-
-        if (!storeService.hasEnoughSpace(file.getStoreId(), file.getSize())) {
-            throw new BaseException(ErrorCode.NoEnoughSpace);
-        }
-        fileMapper.insertFileOrFolder(fileById);
     }
 
     /**
@@ -290,6 +288,62 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
      * @return 是否存在相同文件名或文件夹名称
      */
     public Boolean isExistFilenameOrFolderName(SysFile file) {
-        return fileMapper.findFilesOrFoldersByNameAndParentId(file).size() > 0;
+        return fileMapper.findCountNameByPath(file.getPath(), file.getName(), file.getStoreId()) > 0;
+    }
+
+    /***
+     * 用户当前目录(跨平台)
+     * @param currentDirectory 当前目录
+     * @return 当前目录
+     */
+    public String getUserDirectory(String currentDirectory) {
+        if (StringUtils.isEmpty(currentDirectory)) {
+            currentDirectory = CloudConfig.separator;
+        } else {
+            if (!currentDirectory.endsWith(CloudConfig.separator)) {
+                currentDirectory += CloudConfig.separator;
+            }
+        }
+        currentDirectory = currentDirectory.replaceAll("/" + CloudConfig.separator, File.separator);
+        return currentDirectory;
+    }
+
+    /***
+     * 通过文件Id获取文件的相对路径
+     * @param fileDocument 文件
+     * @return 相对路径
+     */
+    public String getRelativePathByFileId(SysFile fileDocument) {
+        if (fileDocument == null) {
+            return getUserDirectory(null);
+        }
+        if (fileDocument.getIsFolder()) {
+            return getUserDirectory(fileDocument.getPath() + fileDocument.getName());
+        }
+        String currentDirectory = fileDocument.getPath() + fileDocument.getName();
+        return currentDirectory.replaceAll("/" + CloudConfig.separator, File.separator);
+    }
+
+    /**
+     * @param file 文件
+     * @param to   目标路径
+     * @return 中转对象
+     */
+    private SysFile copyFileEntity(SysFile file, String to) {
+        file.setId(null);
+        file.setModifyAt(LocalDateTime.now());
+        file.setPath(to);
+        return file;
+    }
+
+    /**
+     * @param file 文件
+     * @param to   目标路径
+     * @return 中转对象
+     */
+    private SysFile moveFileEntity(SysFile file, String to) {
+        file.setModifyAt(LocalDateTime.now());
+        file.setPath(to);
+        return file;
     }
 }

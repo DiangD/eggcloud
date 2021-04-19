@@ -17,8 +17,6 @@ public interface FileStoreService {
 
     SysFile newFileFolder(@Param("folder") SysFile folder) throws BaseException;
 
-    void copyFileFolder(@Param("folder") SysFile folder) throws BaseException;
-
     void removeFileFolder(@Param("folder") SysFile folder);
 
     Boolean hasEnoughSpace(Long storeId, Long size);

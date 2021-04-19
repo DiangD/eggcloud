@@ -20,19 +20,15 @@ import java.util.List;
  * @Description
  **/
 public interface SysFileService {
-    void deleteFileOrFolder(@Param("file") SysFile file);
-
     void deleteFilesOrFolders(Long storeId, List<Long> fileIds);
 
     void updateFileOrFolder(@Param("file") SysFile file) throws BaseException;
 
     void addFileOrFolder(@Param("file") SysFile file) throws BaseException;
 
-    PageInfo<SysFile> findTypeFiles(@Param("storeId") Long storeId, @Param("type") Integer type, PageEntity pageEntity);
-
     PageInfo<DeletedFile> getTrashBin(DeletedQuery query, PageEntity pageEntity);
 
-    void removeFileOrFolder(@Param("fileIds") List<Long> fileIds, @Param("storeId") Long storeId);
+    void removeFiles(@Param("fileIds") List<Long> fileIds, @Param("storeId") Long storeId);
 
     void restoreFileOrFolder(List<Long> fileIds, @Param("storeId") Long storeId);
 
@@ -44,10 +40,10 @@ public interface SysFileService {
 
     SysFile findFileOrFolder(Long id, Long storeId);
 
-    List<SysFile> findDirPath(Long folderId, Long storeId);
-
-    List<SysFile> getFolderTree(Long storeId, Long parentId);
 
     void moveFiles(Long storeId, Long parentId, List<Long> fileIds) throws BaseException;
 
+    PageInfo<SysFile> searchOpen(FileQuery query, PageEntity pageEntity) throws BaseException;
+
+    List<SysFile> getFolderTree(Long storeId,Long parentId);
 }

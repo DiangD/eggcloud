@@ -12,33 +12,25 @@ import java.util.List;
 
 @Repository
 public interface FileMapper {
-    void deleteFileOrFolderByParentId(@Param("file") SysFile file);
-
     void removeFileByParentId(@Param("storeId") Long storeId, @Param("parentId") Long parentId);
-
-    void removeFileAndFolderByParentId(@Param("parentId") Long parentId);
 
     void deleteFileById(@Param("id") Long id, @Param("storeId") Long storeId);
 
     void deleteFileByIds(@Param("fileIds") List<Long> fileIds, @Param("storeId") Long storeId);
 
-    void removeFileOrFolderById(@Param("id") Long id, @Param("storeId") Long storeId);
+    void removeById(@Param("id") Long id, @Param("storeId") Long storeId);
 
     int insertFileOrFolder(@Param("file") SysFile file);
 
     int insertFiles(@Param("files") List<SysFile> files);
 
-    int updateFileOrFolder(@Param("file") SysFile file);
+    int updateFile(@Param("file") SysFile file);
 
     List<SysFile> findFilesByParentId(@Param("parentId") Long parentId, @Param("storeId") Long storeId);
 
-    List<SysFile> findFilesOrFoldersByNameAndParentId(@Param("file") SysFile file);
-
-    SysFile findFileOrFolderById(@Param("id") Long id, @Param("storeId") Long storeId);
+    SysFile findById(@Param("id") Long id, @Param("storeId") Long storeId);
 
     SysFile findFileOrFolderByIdDeleted(@Param("id") Long id, @Param("storeId") Long storeId);
-
-    List<SysFile> findFilesByTypeByStoreId(@Param("storeId") Long storeId, @Param("type") Integer type);
 
     List<DeletedFile> findFilesFoldersDeletedByQuery(@Param("query") DeletedQuery query);
 
@@ -58,12 +50,21 @@ public interface FileMapper {
 
     int findFilesCountByStoreIdAndType(@Param("storeId") Long storeId, @Param("type") Integer type);
 
-    List<SysFile> findFilesAndFoldersByParentId(@Param("query") FileQuery query);
+    List<SysFile> findByQuery(@Param("query") FileQuery query);
 
     List<SysFile> findFoldersByStoreId(@Param("storeId") Long storeId);
 
-    List<SysFile> findFoldersByParentId(@Param("storeId") Long storeId, @Param("parentId") Long parentId);
 
-    int updateFilesParentId(@Param("storeId") Long storeId, @Param("parentId") Long parentId, @Param("fileIds") List<Long> fileIds);
+    //------- rebuild--------//
+    List<SysFile> findByPathPrefix(@Param("path") String path, @Param("storeId") Long storeId);
 
+    int findCountNameByPath(@Param("path") String path, @Param("name") String name, @Param("storeId") Long storeId);
+
+    int updateFiles(@Param("storeId") Long storeId, @Param("files") List<SysFile> files);
+
+    List<SysFile> findFolderByPath(@Param("path") String path, @Param("storeId") Long storeId);
+
+    int removeByIds(@Param("storeId") Long storeId, @Param("ids") List<Long> ids);
+
+    int removeByIdsNotStore(@Param("ids") List<Long> ids);
 }

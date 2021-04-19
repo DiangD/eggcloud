@@ -11,6 +11,7 @@ import com.qzh.eggcloud.mapper.FileStoreMapper;
 import com.qzh.eggcloud.mapper.SysMenuMapper;
 import com.qzh.eggcloud.mapper.SysUserMapper;
 import com.qzh.eggcloud.model.FileStore;
+import com.qzh.eggcloud.model.SysFile;
 import com.qzh.eggcloud.model.auth.SysUserEntity;
 import com.qzh.eggcloud.model.auth.dto.MenuDTO;
 import com.qzh.eggcloud.model.query.UserQuery;
@@ -108,8 +109,17 @@ class EggCloudApplicationTests {
     private SysFileServiceImpl sysFileService;
 
     @Test
-    void test_getFolderChildren() {
-        Set<Long> childrenIds = sysFileService.getFolderAllChildrenIds(1L, 15659L);
-        System.out.println("childrenIds = " + childrenIds);
+    void test_getUserDirectory() {
+        SysFileServiceImpl bean = SpringUtil.getBean(SysFileServiceImpl.class);
+        String directory = bean.getUserDirectory("/qzh/test/123.txt");
+        System.out.println("directory = " + directory);
+
+
+        SysFile build = SysFile.builder()
+                .name("test.md").isFolder(false)
+                .path("/qzh/test/").build();
+        String pathByFileId = bean.getRelativePathByFileId(build);
+        System.out.println("pathByFileId = " + pathByFileId);
+
     }
 }

@@ -39,7 +39,7 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
             throw new BaseException(ErrorCode.Fail.getCode(), "该文件(夹)已在分享列表");
         }
         shareFile = buildShareFile(shareFile);
-        SysFile file = fileMapper.findFileOrFolderById(shareFile.getFileId(), shareFile.getStoreId());
+        SysFile file = fileMapper.findById(shareFile.getFileId(), shareFile.getStoreId());
         if (file == null) {
             throw new BaseException(ErrorCode.InvalidParam);
         }
@@ -58,7 +58,7 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
             shareFileMapper.deleteShareFileByAccessKey(file.getAccessKey(), file.getStoreId());
             return null;
         }
-        SysFile sysFile = fileMapper.findFileOrFolderById(file.getFileId(), file.getStoreId());
+        SysFile sysFile = fileMapper.findById(file.getFileId(), file.getStoreId());
         file.setFilename(sysFile.getName());
         file.setContentType(sysFile.getContentType());
         file.setExtension(sysFile.getExtension());

@@ -19,6 +19,7 @@ import java.util.Set;
 @ConfigurationProperties(prefix = "egg.cloud")
 public class CloudConfig {
     public static Long maxSize;
+    public static String separator;
     public static Set<String> text;
     public static Set<String> document;
     public static Set<String> image;
@@ -60,5 +61,9 @@ public class CloudConfig {
     public void setZip(String zipStr) {
         String[] split = zipStr.split(",");
         zip = new HashSet<>(Arrays.asList(split));
+    }
+
+    public  void setSeparator(String separator) {
+        CloudConfig.separator = separator;
     }
 }

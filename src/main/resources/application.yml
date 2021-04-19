@@ -4,7 +4,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/egg-cloud?serverTimezone=UTC&useAffectedRows=true
+    url: jdbc:mysql://127.0.0.1:3306/egg-cloud?serverTimezone=UTC&useAffectedRows=true&allowMultiQueries=true
     username: root
     password: 990706
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -24,7 +24,7 @@ spring:
       keep-alive: false
       time-between-eviction-runs-millis: 60000
       min-evictable-idle-time-millis: 300000
-      filters: stat,wall
+      filters: stat
       use-global-data-source-stat: true
       connect-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
       filter:
@@ -36,6 +36,9 @@ spring:
           statement-close-after-log-enabled: false
           result-set-open-after-log-enabled: false
           result-set-close-after-log-enabled: false
+        wall:
+          config:
+            multi-statement-allow: true
       stat-view-servlet:
         enabled: true
         login-username: qzh
@@ -98,6 +101,7 @@ validation:
 egg:
   cloud:
     max-size: 2GB
+    separator: /
     text: txt,html,htm,asp,jsp,xml,json,properties,md,gitignore,java,py,c,cpp,go,js,sql,sh,bat,m,bas,prg,cmd
     document: pdf,word,doc,docs,xls,xl,xlsx,doc,docx,pptx,wps
     image: bmp,gif,jpg,ico,vsd,pic,png,jepg,jpeg,wedp,svg

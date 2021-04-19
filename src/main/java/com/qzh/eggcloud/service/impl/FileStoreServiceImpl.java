@@ -2,6 +2,7 @@ package com.qzh.eggcloud.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.google.common.collect.Lists;
 import com.qzh.eggcloud.auth.SysUserDetail;
 import com.qzh.eggcloud.common.exception.BaseException;
 import com.qzh.eggcloud.common.resp.ErrorCode;
@@ -12,11 +13,13 @@ import com.qzh.eggcloud.model.query.StoreQuery;
 import com.qzh.eggcloud.model.vo.UserStoreVo;
 import com.qzh.eggcloud.service.FileStoreService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @ClassName FileStoreServiceImpl
@@ -28,6 +31,9 @@ import java.util.List;
 @Service
 @Slf4j
 public class FileStoreServiceImpl extends BaseService implements FileStoreService {
+
+    @Autowired
+    private SysFileServiceImpl fileService;
 
     /**
      * @param fileStore 仓库
@@ -46,8 +52,19 @@ public class FileStoreServiceImpl extends BaseService implements FileStoreServic
     @Override
     @Transactional
     public void removeFileFolder(SysFile folder) {
-        //递归
-        removeFolder(folder);
+        if (folder.getIsFolder()) {
+            String path = fileService.getUserDirectory(folder.getPath() + folder.getName());
+            List<SysFile> children = fileMapper.findByPathPrefix(path, folder.getStoreId());
+            List<Long> ids = Lists.newArrayList();
+            AtomicLong size = new AtomicLong(folder.getSize());
+            children.forEach(child -> {
+                ids.add(child.getId());
+                size.addAndGet(child.getSize());
+            });
+            ids.add(folder.getId());
+            fileMapper.removeByIds(folder.getStoreId(), ids);
+            fileStoreMapper.subOccupy(size.get(), folder.getStoreId());
+        }
     }
 
     /**
@@ -139,30 +156,6 @@ public class FileStoreServiceImpl extends BaseService implements FileStoreServic
         return fileMapper.findFoldersByStoreId(storeId);
     }
 
-    /**
-     * @param folder 文件夹
-     *               移除文件夹
-     */
-    private void removeFolder(SysFile folder) {
-        if (folder == null) {
-            return;
-        }
-        fileMapper.removeFileOrFolderById(folder.getId(), folder.getStoreId());
-        List<SysFile> files = fileMapper.findFilesByParentId(folder.getId(), folder.getStoreId());
-        long sizeSum = 0;
-        for (SysFile file : files) {
-            sizeSum += file.getSize();
-        }
-        fileMapper.removeFileByParentId(folder.getStoreId(), folder.getId());
-        fileStoreMapper.subOccupy(sizeSum, folder.getStoreId());
-        List<SysFile> children = fileFolderMapper.findFileFolderByParentId(folder.getStoreId(), folder.getId());
-        if (children.size() > 0) {
-            for (SysFile child : children) {
-                removeFolder(child);
-            }
-        }
-    }
-
 
     /**
      * @param folder 文件夹
@@ -176,69 +169,7 @@ public class FileStoreServiceImpl extends BaseService implements FileStoreServic
         folder.setCreateAt(LocalDateTime.now());
         folder.setModifyAt(LocalDateTime.now());
         fileMapper.insertFileOrFolder(folder);
-        return fileMapper.findFileOrFolderById(folder.getId(), folder.getStoreId());
-    }
-
-    /**
-     * @param folder 文件夹
-     * @throws BaseException BaseException
-     *                       复制文件夹
-     */
-    @Override
-    @Transactional
-    public void copyFileFolder(SysFile folder) throws BaseException {
-        if (isExistFolderName(folder)) {
-            throw new BaseException(ErrorCode.DuplicateFolderOrFile);
-        }
-        //root
-        SysFile folderById = fileMapper.findFileOrFolderById(folder.getId(), folder.getStoreId());
-        //递归
-        recurCopyFolder(folderById, folder.getParentId());
-    }
-
-    /**
-     * @param folder   文件夹
-     * @param parentId 新父文件夹id
-     */
-    // folderId parentId
-    private void recurCopyFolder(SysFile folder, Long parentId) throws BaseException {
-        //exit
-        if (folder == null) {
-            return;
-        }
-        //原文件夹id
-        long folderId = folder.getId();
-        //设置新父文件夹
-        folder.setParentId(parentId);
-        folder.setId(null);
-        fileMapper.insertFileOrFolder(folder);
-        //获取原id文件夹下的所有文件
-        List<SysFile> files = fileMapper.findFilesByParentId(folderId, folder.getStoreId());
-        long sizeSum = 0;
-        if (files.size() > 0) {
-            for (SysFile file : files) {
-                //设置新id
-                sizeSum += file.getSize();
-                file.setParentId(folder.getId());
-            }
-            //检查空间
-            if (!hasEnoughSpace(folder.getStoreId(), sizeSum)) {
-                throw new BaseException(ErrorCode.NoEnoughSpace);
-            }
-            fileMapper.insertFiles(files);
-            fileStoreMapper.incrOccupy(sizeSum, folder.getStoreId());
-        }
-
-        //获取旧原id下的所有文件夹
-        List<SysFile> folderChildren = fileFolderMapper.findFileFolderByParentId(folder.getStoreId(), folderId);
-        log.info("folderChildren:{}", folderChildren);
-        if (folderChildren.size() > 0) {
-            parentId = folder.getId();
-            //递归
-            for (SysFile child : folderChildren) {
-                recurCopyFolder(child, parentId);
-            }
-        }
+        return fileMapper.findById(folder.getId(), folder.getStoreId());
     }
 
     /**
@@ -247,6 +178,7 @@ public class FileStoreServiceImpl extends BaseService implements FileStoreServic
      */
     public boolean isExistFolderName(SysFile folder) {
         folder.setIsFolder(true);
-        return fileMapper.findFilesOrFoldersByNameAndParentId(folder).size() > 0;
+        String path = fileService.getUserDirectory(folder.getPath() + folder.getName());
+        return fileMapper.findCountNameByPath(path, folder.getName(), folder.getStoreId()) > 0;
     }
 }
