@@ -1,11 +1,16 @@
 package com.qzh.eggcloud.service.impl;
 
+import cn.hutool.core.util.ZipUtil;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.qzh.eggcloud.auth.SysUserDetail;
 import com.qzh.eggcloud.common.config.CloudConfig;
 import com.qzh.eggcloud.common.exception.BaseException;
 import com.qzh.eggcloud.common.resp.ErrorCode;
+import com.qzh.eggcloud.common.utils.SecurityUtil;
+import com.qzh.eggcloud.dfs.utils.EggFileUtil;
 import com.qzh.eggcloud.model.SysFile;
 import com.qzh.eggcloud.model.auth.dto.DeletedFile;
 import com.qzh.eggcloud.model.query.DeletedQuery;
@@ -14,16 +19,28 @@ import com.qzh.eggcloud.model.query.FileSearch;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.service.FileStoreService;
 import com.qzh.eggcloud.service.SysFileService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.zip.ZipOutputStream;
 
 /**
  * @ClassName SysFileServiceImpl
@@ -33,6 +50,7 @@ import java.util.stream.Collectors;
  * @Description
  **/
 @Service
+@Slf4j
 public class SysFileServiceImpl extends BaseService implements SysFileService {
 
     @Autowired
@@ -345,5 +363,72 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
         file.setModifyAt(LocalDateTime.now());
         file.setPath(to);
         return file;
+    }
+
+    /**
+     * @param request http request
+     * @param response http response
+     * @param fileIds 文件Id列表
+     * 文件打包下载
+     */
+    @Override
+    public void packageDownload(HttpServletRequest request, HttpServletResponse response, List<Long> fileIds) throws IOException, BaseException {
+        //响应头的设置
+        response.reset();
+        response.setCharacterEncoding("utf-8");
+        response.setContentType("multipart/form-data");
+        //设置压缩包的名字
+        setDownloadName(request, response,Instant.now().toEpochMilli() + ".zip");
+
+        SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
+        List<SysFile> files = Lists.newArrayList();
+        long totalSize = 0;
+        for (Long fileId : fileIds) {
+            SysFile sysFile = fileMapper.findById(fileId, userDetail.getStoreId());
+            totalSize += sysFile.getSize();
+            if (sysFile.getIsFolder()) {
+                List<SysFile> fileList = fileMapper.findByPathPrefix(getUserDirectory(sysFile.getPath() + sysFile.getName()), userDetail.getUserId());
+                for (SysFile file : fileList) {
+                    totalSize += file.getSize();
+                    if (!file.getIsFolder()) {
+                        files.add(file);
+                    }
+                }
+            } else {
+                files.add(sysFile);
+            }
+        }
+        if (totalSize <= 0) {
+            throw new BaseException(ErrorCode.EmptyFile);
+        }
+
+        Map<String, InputStream> fileMap = Maps.newHashMap();
+        files.forEach(file -> {
+            String filePath = file.getPath() + file.getName();
+            InputStream in = EggFileUtil.downloadToInputStream(file.getGroup(), file.getRemotePath());
+            fileMap.put(filePath, in);
+        });
+
+        ArrayList<String> paths = Lists.newArrayList(fileMap.keySet());
+        ArrayList<InputStream> inputStreams = Lists.newArrayList(fileMap.values());
+
+        ZipOutputStream zipOutputStream = new ZipOutputStream(response.getOutputStream());
+        ZipUtil.zip(zipOutputStream, paths.toArray(new String[0]), inputStreams.toArray(new InputStream[0]));
+    }
+
+    private void setDownloadName(HttpServletRequest request, HttpServletResponse response, String downloadName) {
+        try {
+            //获取浏览器名（IE/Chrome/firefox）目前主流的四大浏览器内核Trident(IE)、Gecko(Firefox内核)、WebKit(Safari内核,Chrome内核原型,开源)以及Presto(Opera前内核) (已废弃)
+            String gecko = "Gecko", webKit = "WebKit";
+            String userAgent = request.getHeader("User-Agent");
+            if (userAgent.contains(gecko) || userAgent.contains(webKit)) {
+                downloadName = new String(downloadName.getBytes(StandardCharsets.UTF_8), "ISO8859-1");
+            } else {
+                downloadName = URLEncoder.encode(downloadName, "UTF-8");
+            }
+            response.setHeader("Content-Disposition", "attachment;fileName=\"" + downloadName + "\"");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e.getMessage(), e);
+        }
     }
 }

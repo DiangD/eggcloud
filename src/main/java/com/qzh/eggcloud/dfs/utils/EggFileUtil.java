@@ -15,6 +15,7 @@ import com.qzh.eggcloud.model.FileType;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -101,17 +102,28 @@ public class EggFileUtil {
     }
 
     public static void downloadFile(String group, String filepath, OutputStream outputStream) {
-        String url = downloadUrl + "?" +
-                "group=" + group +
-                "&" +
-                "file=" + filepath;
+        String url = downloadUrl(group, filepath);
         HttpUtil.download(url, outputStream, true);
     }
 
     public static void downloadFile(Map<String, String> params, OutputStream outputStream) {
+        String url = downloadUrl(params);
+        if (StringUtils.isNotEmpty(url)) {
+            HttpUtil.download(url, outputStream, true);
+        }
+    }
+
+    public static String downloadUrl(String group, String remotePath) {
+        return downloadUrl + "?" +
+                "group=" + group +
+                "&" +
+                "file=" + remotePath;
+    }
+
+    public static String downloadUrl(Map<String, String> params) {
         StringBuilder builder = new StringBuilder(downloadUrl);
         if (params.isEmpty()) {
-            return;
+            return "";
         }
         builder.append("?");
         for (String key : params.keySet()) {
@@ -121,7 +133,21 @@ public class EggFileUtil {
                     .append("&");
         }
         builder.deleteCharAt(builder.length() - 1);
-        HttpUtil.download(builder.toString(), outputStream, true);
+        return builder.toString();
     }
 
+    public static byte[] downloadBytes(String group, String remotePath) {
+        String url = downloadUrl(group, remotePath);
+        return HttpUtil.downloadBytes(url);
+    }
+
+    public static byte[] downloadBytes(Map<String, String> params) {
+        String url = downloadUrl(params);
+        return HttpUtil.downloadBytes(url);
+    }
+
+    public static InputStream downloadToInputStream(String group, String remotePath) {
+        byte[] content = downloadBytes(group, remotePath);
+        return new ByteArrayInputStream(content);
+    }
 }

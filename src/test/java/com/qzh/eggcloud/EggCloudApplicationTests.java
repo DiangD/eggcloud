@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.qzh.eggcloud.common.config.CloudConfig;
 import com.qzh.eggcloud.common.utils.SpringUtil;
+import com.qzh.eggcloud.dfs.utils.EggFileUtil;
 import com.qzh.eggcloud.mapper.FileStoreMapper;
 import com.qzh.eggcloud.mapper.SysMenuMapper;
 import com.qzh.eggcloud.mapper.SysUserMapper;
@@ -25,10 +26,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
+import java.io.ByteArrayInputStream;
+import java.util.*;
 
 @SpringBootTest
 class EggCloudApplicationTests {
@@ -121,5 +120,14 @@ class EggCloudApplicationTests {
         String pathByFileId = bean.getRelativePathByFileId(build);
         System.out.println("pathByFileId = " + pathByFileId);
 
+    }
+
+    @Test
+    void test_downloadBytes() {
+        byte[] bytes = EggFileUtil.downloadBytes("g1", "2021/4/15/1382699849335308288.jpg");
+        byte[] bytes1 = HttpUtil.downloadBytes("http://127.0.0.1:8082/g1/2021/4/15/1382699849335308288.jpg");
+        String s1 = Arrays.toString(bytes);
+        String s2 = Arrays.toString(bytes1);
+        System.out.println(s1.equals(s2));
     }
 }

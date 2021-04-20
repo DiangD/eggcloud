@@ -25,6 +25,7 @@ public enum ErrorCode {
     NoEnoughSpace(4011, "存储空间不足"),
     StopCronTask(4012, "请先停止任务"),
     StartCronTask(4013, "请先开启任务"),
+    EmptyFile(4014, "所选文件为空文件"),
 
     //token错误
     TokenExpired(3000, "Token已过期，请重新登录"),

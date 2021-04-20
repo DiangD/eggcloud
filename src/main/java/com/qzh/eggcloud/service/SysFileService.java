@@ -2,14 +2,17 @@ package com.qzh.eggcloud.service;
 
 import com.github.pagehelper.PageInfo;
 import com.qzh.eggcloud.common.exception.BaseException;
+import com.qzh.eggcloud.model.SysFile;
 import com.qzh.eggcloud.model.auth.dto.DeletedFile;
 import com.qzh.eggcloud.model.query.DeletedQuery;
 import com.qzh.eggcloud.model.query.FileQuery;
 import com.qzh.eggcloud.model.query.FileSearch;
 import com.qzh.eggcloud.model.query.PageEntity;
-import com.qzh.eggcloud.model.SysFile;
 import org.apache.ibatis.annotations.Param;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -46,4 +49,6 @@ public interface SysFileService {
     PageInfo<SysFile> searchOpen(FileQuery query, PageEntity pageEntity) throws BaseException;
 
     List<SysFile> getFolderTree(Long storeId,Long parentId);
+
+    void packageDownload(HttpServletRequest request, HttpServletResponse response, List<Long> fileIds) throws IOException, BaseException;
 }

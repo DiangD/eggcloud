@@ -22,6 +22,7 @@ import com.qzh.eggcloud.model.query.FileSearch;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.service.FileStoreService;
 import com.qzh.eggcloud.service.impl.SysFileServiceImpl;
+import com.sun.xml.internal.ws.api.model.ExceptionType;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -41,6 +43,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -170,6 +173,7 @@ public class SysFileController {
 
     /**
      * 将BufferedImage转换为InputStream
+     *
      * @param image 图片
      * @return 输入流
      */
@@ -252,10 +256,21 @@ public class SysFileController {
 
     @GetMapping("/search/open")
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#query.userId)}")
-    public ResponseEntity<Object> searchOpen(FileQuery query,PageEntity pageEntity) throws BaseException {
+    public ResponseEntity<Object> searchOpen(FileQuery query, PageEntity pageEntity) throws BaseException {
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
         query.setStoreId(userDetail.getStoreId());
         PageInfo<SysFile> pageInfo = sysFileService.searchOpen(query, pageEntity);
         return ResponseEntity.ok(RespUtil.success(pageInfo));
+    }
+
+    @GetMapping("/packageDownload")
+    @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
+    public void packageDownload(HttpServletRequest request, HttpServletResponse response, Long userId,Long[] fileIds,String token) throws BaseException, IOException {
+        if (fileIds != null && fileIds.length > 0) {
+            List<Long> fileIdList = Arrays.asList(fileIds);
+            sysFileService.packageDownload(request, response, fileIdList);
+        } else {
+            throw new BaseException(ErrorCode.Fail);
+        }
     }
 }
