@@ -47,7 +47,7 @@ public class BaseController {
     private StringRedisTemplate redisTemplate;
 
     @PostMapping("/verify/code")
-    @AccessLimit(limit = 1, timeScope = 10)
+    @AccessLimit(limit = 1, timeScope = 10, timeUnit = TimeUnit.SECONDS)
     public ResponseEntity<JsonResult<Object>> vilifyCode(@Email(message = "邮箱格式错误")
                                                          @NotBlank(message = "邮箱不能为空")
                                                          @RequestParam("email") String email) {

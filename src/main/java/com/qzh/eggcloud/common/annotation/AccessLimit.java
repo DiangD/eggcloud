@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.concurrent.TimeUnit;
 
 /**
  *请求限制注解
@@ -21,4 +22,6 @@ public @interface AccessLimit {
      * 时间范围
      */
     int timeScope();
+
+    TimeUnit timeUnit();
 }

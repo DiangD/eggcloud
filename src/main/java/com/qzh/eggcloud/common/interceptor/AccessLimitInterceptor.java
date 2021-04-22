@@ -42,6 +42,7 @@ public class AccessLimitInterceptor implements HandlerInterceptor {
             //获取注解的值
             int limit = accessLimit.limit();
             int timeScope = accessLimit.timeScope();
+            TimeUnit unit = accessLimit.timeUnit();
             String uri = request.getRequestURI();
             final String key;
             //获取登录用户
@@ -65,7 +66,7 @@ public class AccessLimitInterceptor implements HandlerInterceptor {
                 }
                 throw new BaseException(ErrorCode.FrequentOperation);
             } else {
-                redisTemplate.opsForValue().set(key, "1", timeScope, TimeUnit.SECONDS);
+                redisTemplate.opsForValue().set(key, "1", timeScope, unit);
                 return true;
             }
         }

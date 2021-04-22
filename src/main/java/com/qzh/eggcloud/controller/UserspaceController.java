@@ -36,6 +36,7 @@ import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @ClassName UserspaceController
@@ -115,7 +116,7 @@ public class UserspaceController {
     }
 
     @PostMapping("/upload/avatar")
-    @AccessLimit(limit = 2, timeScope = 10)
+    @AccessLimit(limit = 2, timeScope = 10, timeUnit = TimeUnit.SECONDS)
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')}")
     public ResponseEntity<JsonResult<Object>> uploadAvatar(@RequestParam Long userId,
                                                            @RequestParam("file") MultipartFile file,
