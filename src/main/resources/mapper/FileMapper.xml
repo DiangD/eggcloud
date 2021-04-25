@@ -212,7 +212,6 @@
         path
         from sys_file
         where id = #{id}
-        and store_id = #{storeId}
         and deleted = 0
     </select>
 
@@ -456,4 +455,16 @@
             #{id}
         </foreach>
     </delete>
+
+    <select id="findShareFileById" resultType="com.qzh.eggcloud.model.SysFile">
+        select id, name, is_folder, extension, create_at, modify_at, size,content_type,path
+        from sys_file
+        where id = #{id}
+        and deleted = 0
+    </select>
+
+    <select id="findByPath" resultType="com.qzh.eggcloud.model.SysFile">
+        select id, name, is_folder, extension, create_at, modify_at, size, content_type,path from sys_file
+        where store_id =#{storeId} and path = #{path}
+    </select>
 </mapper>

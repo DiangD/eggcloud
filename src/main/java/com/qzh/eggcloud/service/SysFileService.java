@@ -48,7 +48,11 @@ public interface SysFileService {
 
     PageInfo<SysFile> searchOpen(FileQuery query, PageEntity pageEntity) throws BaseException;
 
-    List<SysFile> getFolderTree(Long storeId,Long parentId);
+    List<SysFile> getFolderTree(Long storeId, Long parentId);
 
     void packageDownload(HttpServletRequest request, HttpServletResponse response, List<Long> fileIds) throws IOException, BaseException;
+
+    void publicPackageDownload(HttpServletRequest request, HttpServletResponse response, List<Long> fileIds) throws IOException, BaseException;
+
+    SysFile getShareFile(Long id);
 }

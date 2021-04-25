@@ -13,6 +13,7 @@ import com.qzh.eggcloud.common.utils.SecurityUtil;
 import com.qzh.eggcloud.dfs.utils.EggFileUtil;
 import com.qzh.eggcloud.model.SysFile;
 import com.qzh.eggcloud.model.auth.dto.DeletedFile;
+import com.qzh.eggcloud.model.auth.dto.ShareDTO;
 import com.qzh.eggcloud.model.query.DeletedQuery;
 import com.qzh.eggcloud.model.query.FileQuery;
 import com.qzh.eggcloud.model.query.FileSearch;
@@ -366,10 +367,10 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
     }
 
     /**
-     * @param request http request
+     * @param request  http request
      * @param response http response
-     * @param fileIds 文件Id列表
-     * 文件打包下载
+     * @param fileIds  文件Id列表
+     *                 文件打包下载
      */
     @Override
     public void packageDownload(HttpServletRequest request, HttpServletResponse response, List<Long> fileIds) throws IOException, BaseException {
@@ -378,7 +379,7 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
         response.setCharacterEncoding("utf-8");
         response.setContentType("multipart/form-data");
         //设置压缩包的名字
-        setDownloadName(request, response,Instant.now().toEpochMilli() + ".zip");
+        setDownloadName(request, response, Instant.now().toEpochMilli() + ".zip");
 
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
         List<SysFile> files = Lists.newArrayList();
@@ -387,7 +388,7 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
             SysFile sysFile = fileMapper.findById(fileId, userDetail.getStoreId());
             totalSize += sysFile.getSize();
             if (sysFile.getIsFolder()) {
-                List<SysFile> fileList = fileMapper.findByPathPrefix(getUserDirectory(sysFile.getPath() + sysFile.getName()), userDetail.getUserId());
+                List<SysFile> fileList = fileMapper.findByPathPrefix(getUserDirectory(sysFile.getPath() + sysFile.getName()), userDetail.getStoreId());
                 for (SysFile file : fileList) {
                     totalSize += file.getSize();
                     if (!file.getIsFolder()) {
@@ -414,6 +415,57 @@ public class SysFileServiceImpl extends BaseService implements SysFileService {
 
         ZipOutputStream zipOutputStream = new ZipOutputStream(response.getOutputStream());
         ZipUtil.zip(zipOutputStream, paths.toArray(new String[0]), inputStreams.toArray(new InputStream[0]));
+    }
+
+    @Override
+    public void publicPackageDownload(HttpServletRequest request, HttpServletResponse response, List<Long> fileIds) throws IOException, BaseException {
+        //响应头的设置
+        response.reset();
+        response.setCharacterEncoding("utf-8");
+        response.setContentType("multipart/form-data");
+        //设置压缩包的名字
+        setDownloadName(request, response, Instant.now().toEpochMilli() + ".zip");
+
+        String accessKey = request.getParameter("accessKey");
+        ShareDTO shareDTO = shareFileMapper.findShareFileByAccessKey(accessKey);
+        List<SysFile> files = Lists.newArrayList();
+        long totalSize = 0;
+        for (Long fileId : fileIds) {
+            SysFile sysFile = fileMapper.findById(fileId, shareDTO.getStoreId());
+            totalSize += sysFile.getSize();
+            if (sysFile.getIsFolder()) {
+                List<SysFile> fileList = fileMapper.findByPathPrefix(getUserDirectory(sysFile.getPath() + sysFile.getName()), shareDTO.getStoreId());
+                for (SysFile file : fileList) {
+                    totalSize += file.getSize();
+                    if (!file.getIsFolder()) {
+                        files.add(file);
+                    }
+                }
+            } else {
+                files.add(sysFile);
+            }
+        }
+        if (totalSize <= 0) {
+            throw new BaseException(ErrorCode.EmptyFile);
+        }
+
+        Map<String, InputStream> fileMap = Maps.newHashMap();
+        files.forEach(file -> {
+            String filePath = file.getPath() + file.getName();
+            InputStream in = EggFileUtil.downloadToInputStream(file.getGroup(), file.getRemotePath());
+            fileMap.put(filePath, in);
+        });
+
+        ArrayList<String> paths = Lists.newArrayList(fileMap.keySet());
+        ArrayList<InputStream> inputStreams = Lists.newArrayList(fileMap.values());
+
+        ZipOutputStream zipOutputStream = new ZipOutputStream(response.getOutputStream());
+        ZipUtil.zip(zipOutputStream, paths.toArray(new String[0]), inputStreams.toArray(new InputStream[0]));
+    }
+
+    @Override
+    public SysFile getShareFile(Long id) {
+        return fileMapper.findShareFileById(id);
     }
 
     private void setDownloadName(HttpServletRequest request, HttpServletResponse response, String downloadName) {

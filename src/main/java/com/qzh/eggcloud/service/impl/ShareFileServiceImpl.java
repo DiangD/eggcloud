@@ -12,6 +12,7 @@ import com.qzh.eggcloud.model.auth.dto.ShareDTO;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.model.query.ShareQuery;
 import com.qzh.eggcloud.service.ShareFileService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,6 +28,9 @@ import java.util.List;
  **/
 @Service
 public class ShareFileServiceImpl extends BaseService implements ShareFileService {
+    @Autowired
+    private SysFileServiceImpl sysFileService;
+
     /**
      * @param shareFile 分享实体
      * @return 完善的实体
@@ -38,11 +42,11 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
         if (shareDo != null) {
             throw new BaseException(ErrorCode.Fail.getCode(), "该文件(夹)已在分享列表");
         }
-        shareFile = buildShareFile(shareFile);
-        SysFile file = fileMapper.findById(shareFile.getFileId(), shareFile.getStoreId());
+        SysFile file = fileMapper.findById(shareFile.getFileId(),shareFile.getStoreId());
         if (file == null) {
             throw new BaseException(ErrorCode.InvalidParam);
         }
+        shareFile = buildShareFile(shareFile, file);
         shareFileMapper.insertShareFile(shareFile);
         return shareFile;
     }
@@ -53,21 +57,20 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
      */
     @Override
     public ShareDTO getShareFile(String accessKey) {
-        ShareDTO file = shareFileMapper.findShareFileByAccessKey(accessKey);
-        if (!isValidShareFile(file)) {
-            shareFileMapper.deleteShareFileByAccessKey(file.getAccessKey(), file.getStoreId());
+        ShareDTO share = shareFileMapper.findShareFileByAccessKey(accessKey);
+        if (share == null) {
             return null;
         }
-        SysFile sysFile = fileMapper.findById(file.getFileId(), file.getStoreId());
-        file.setFilename(sysFile.getName());
-        file.setContentType(sysFile.getContentType());
-        file.setExtension(sysFile.getExtension());
-        return file;
+        if (!isValidShareFile(share)) {
+            shareFileMapper.deleteShareFileByAccessKey(share.getAccessKey(), share.getStoreId());
+            return null;
+        }
+        return share;
     }
 
     /**
      * @param accessKeys 唯一标识
-     * @param storeId   仓库id
+     * @param storeId    仓库id
      */
     @Override
     public void cancelShares(String[] accessKeys, Long storeId) {
@@ -76,7 +79,7 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
     }
 
     /**
-     * @param query    仓库id
+     * @param query      仓库id
      * @param pageEntity page
      * @return 分页
      */
@@ -93,6 +96,21 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
     @Override
     public void removeShareFilesExpired() {
         shareFileMapper.deleteByExpireAt();
+    }
+
+    @Override
+    public PageInfo<SysFile> accessShareDirOpen(String accessKey, Long folderId, PageEntity entity) throws BaseException {
+        ShareDTO share = shareFileMapper.findShareFileByAccessKey(accessKey);
+        SysFile file = fileMapper.findShareFileById(share.getFileId());
+        SysFile target = fileMapper.findById(folderId,share.getStoreId());
+        if (!target.getIsFolder()) {
+            throw new BaseException(ErrorCode.Fail);
+        }
+        if (!folderId.equals(file.getId()) && target.getPath().contains(sysFileService.getUserDirectory(file.getPath() + file.getName())))
+            PageHelper.startPage(entity.getPageNum(), entity.getPageSize());
+        String path = sysFileService.getUserDirectory(target.getPath() + target.getName());
+        List<SysFile> files = fileMapper.findByPath(path, share.getStoreId());
+        return PageInfo.of(files);
     }
 
     /**
@@ -115,12 +133,10 @@ public class ShareFileServiceImpl extends BaseService implements ShareFileServic
      * @param shareFile 分享实体
      * @return 完善的实体
      */
-    public ShareFile buildShareFile(ShareFile shareFile) {
+    public ShareFile buildShareFile(ShareFile shareFile, SysFile file) {
         String accessKey = genAccessKey();
         shareFile.setAccessKey(accessKey);
-        if (shareFile.getIsFolder() == null) {
-            shareFile.setIsFolder(false);
-        }
+        shareFile.setIsFolder(file.getIsFolder());
         if (shareFile.getHasVerify()) {
             shareFile.setCode(VilifyCodeUtil.createVilifyCode(6));
         }

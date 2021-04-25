@@ -67,4 +67,8 @@ public interface FileMapper {
     int removeByIds(@Param("storeId") Long storeId, @Param("ids") List<Long> ids);
 
     int removeByIdsNotStore(@Param("ids") List<Long> ids);
+
+    SysFile findShareFileById(@Param("id") Long id);
+
+    List<SysFile> findByPath(@Param("path") String path, @Param("storeId") Long storeId);
 }

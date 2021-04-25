@@ -91,7 +91,7 @@ jwt:
   tokenHeader: Authorization
   tokenPrefix: eggcloud-
   expiration: 172800
-  antMatchers: index/**,/login,/register,/favicon.ico,/logout,/druid/**,/verify/code,/s/public/**
+  antMatchers: index/**,/login,/register,/favicon.ico,/logout,/druid/**,/verify/code,/s/public/**,/public/**
 
 
 validation:
