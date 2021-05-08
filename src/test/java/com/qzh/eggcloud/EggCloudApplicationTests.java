@@ -4,8 +4,10 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson.JSON;
+import com.google.common.base.CaseFormat;
 import com.google.common.collect.Maps;
 import com.qzh.eggcloud.common.config.CloudConfig;
+import com.qzh.eggcloud.common.utils.SecurityUtil;
 import com.qzh.eggcloud.common.utils.SpringUtil;
 import com.qzh.eggcloud.dfs.utils.EggFileUtil;
 import com.qzh.eggcloud.mapper.FileStoreMapper;
@@ -129,5 +131,16 @@ class EggCloudApplicationTests {
         String s1 = Arrays.toString(bytes);
         String s2 = Arrays.toString(bytes1);
         System.out.println(s1.equals(s2));
+    }
+
+    @Test
+    void test_caseFormat() {
+        String to = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, "test_data");
+        System.out.println("to = " + to);
+    }
+
+    @Test
+    void test_hasPermissions() {
+        System.out.println("SecurityUtil.PERMISSIONS = " + SecurityUtil.PERMISSIONS);
     }
 }

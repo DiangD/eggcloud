@@ -3,14 +3,21 @@ package com.qzh.eggcloud.service.impl;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.qzh.eggcloud.auth.SysUserDetail;
+import com.qzh.eggcloud.common.exception.BaseException;
+import com.qzh.eggcloud.common.resp.ErrorCode;
+import com.qzh.eggcloud.common.utils.RespUtil;
 import com.qzh.eggcloud.common.utils.SecurityUtil;
 import com.qzh.eggcloud.cron.manager.QuartzManager;
 import com.qzh.eggcloud.model.JobStatus;
+import com.qzh.eggcloud.model.dto.TaskDTO;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.model.SysTask;
+import com.qzh.eggcloud.model.query.TaskQuery;
 import com.qzh.eggcloud.service.SysTaskService;
 import org.quartz.SchedulerException;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,36 +43,75 @@ public class SysTaskServiceImpl extends BaseService implements SysTaskService {
     }
 
     @Override
-    public PageInfo<SysTask> findAll(PageEntity pageEntity) {
+    public PageInfo<TaskDTO> listTask(TaskQuery query, PageEntity pageEntity) {
         PageHelper.startPage(pageEntity.getPageNum(), pageEntity.getPageSize());
-        List<SysTask> tasks = sysTaskMapper.findAll();
-        return PageInfo.of(tasks);
+        List<TaskDTO> list = sysTaskMapper.findByQuery(query);
+        return PageInfo.of(list);
     }
 
     @Override
-    public int addTask(SysTask task) {
+    public int addTask(TaskDTO task) throws BaseException {
+        if (isExistsJobName(task.getJobName())) {
+            throw new BaseException(ErrorCode.Fail.getCode(), "该任务名称已存在");
+        }
+        if (isExistsBeanClass(task.getBeanClass())) {
+            throw new BaseException(ErrorCode.Fail.getCode(), "该任务类已存在");
+        }
+
         String username = SecurityUtil.getSysUserDetail().getUsername();
-        task.setCreateUser(username);
-        task.setUpdateUser(username);
-        task.setCreateAt(LocalDateTime.now());
-        task.setUpdateAt(LocalDateTime.now());
-        return sysTaskMapper.insertSysTask(task);
+        SysTask sysTask = new SysTask();
+        BeanUtils.copyProperties(task, sysTask);
+        sysTask.setJobStatus(JobStatus.STOP.getCode());
+        sysTask.setCreateUser(username);
+        sysTask.setUpdateUser(username);
+        sysTask.setCreateAt(LocalDateTime.now());
+        sysTask.setUpdateAt(LocalDateTime.now());
+        return sysTaskMapper.insertSysTask(sysTask);
+    }
+
+    private boolean isExistsJobName(String jobName) {
+        return sysTaskMapper.findCountByName(jobName) > 0;
+    }
+
+    private boolean isSelfByJobName(TaskDTO taskDTO) {
+        SysTask byName = sysTaskMapper.findByName(taskDTO.getJobName());
+        if (byName == null) {
+            return true;
+        }
+        return taskDTO.getId().equals(byName.getId());
+    }
+
+    private boolean isExistsBeanClass(String beanClass) {
+        return sysTaskMapper.findCountByBeanClass(beanClass) > 0;
+    }
+
+    private boolean isSelfByBeanClass(TaskDTO taskDTO) {
+        SysTask byBeanClass = sysTaskMapper.findByBeanClass(taskDTO.getBeanClass());
+        if (byBeanClass == null) {
+            return true;
+        }
+        return taskDTO.getId().equals(byBeanClass.getId());
     }
 
     @Override
-    public int updateTask(SysTask task) throws SchedulerException {
+    public int updateTask(TaskDTO task) throws BaseException {
+        SysTask sysTask = findTaskById(task.getId());
+        if (JobStatus.RUNNING.getCode().equals(sysTask.getJobStatus())) {
+            throw new BaseException(ErrorCode.StopCronTask);
+        }
+        if (!isSelfByJobName(task)) {
+            throw new BaseException(ErrorCode.Fail.getCode(), "该任务名称已存在");
+        }
+        if (!isSelfByBeanClass(task)) {
+            throw new BaseException(ErrorCode.Fail.getCode(), "该任务类已存在");
+        }
+
+        sysTask = new SysTask();
+        BeanUtils.copyProperties(task, sysTask);
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
         task.setUpdateAt(LocalDateTime.now());
         task.setUpdateUser(userDetail.getUsername());
-        return sysTaskMapper.updateSysTask(task);
-    }
-
-    @Override
-    public int saveTask(SysTask task) throws SchedulerException {
-        if (task.getId() != null) {
-            return updateTask(task);
-        }
-        return addTask(task);
+        return sysTaskMapper.updateSysTask(sysTask);
     }
 
     @Override
@@ -82,15 +128,16 @@ public class SysTaskServiceImpl extends BaseService implements SysTaskService {
 
     @Override
     @Transactional
-    public int batchDeleteTasks(Long[] ids) {
+    public int batchDeleteTasks(Long[] ids) throws BaseException, SchedulerException {
         for (Long id : ids) {
-            try {
-                SysTask task = findTaskById(id);
-                quartzManager.deleteJob(task);
-            } catch (SchedulerException e) {
-                e.printStackTrace();
-                return 0;
+            SysTask task = findTaskById(id);
+            if (JobStatus.RUNNING.getCode().equals(task.getJobStatus())) {
+                throw new BaseException(ErrorCode.StopCronTask);
             }
+        }
+        for (Long id : ids) {
+            SysTask task = findTaskById(id);
+            quartzManager.deleteJob(task);
         }
         return sysTaskMapper.batchDelete(ids);
     }
@@ -132,13 +179,6 @@ public class SysTaskServiceImpl extends BaseService implements SysTaskService {
     }
 
     @Override
-    public PageInfo<SysTask> findBySearchKey(String key, PageEntity pageEntity) {
-        PageHelper.startPage(pageEntity.getPageNum(), pageEntity.getPageSize());
-        List<SysTask> tasks = sysTaskMapper.findBySearchKey(key);
-        return PageInfo.of(tasks);
-    }
-
-    @Override
     public void changeTaskStatus(Long jobId, String jobStatus) throws Exception {
         SysTask task = findTaskById(jobId);
         if (task == null || task.getJobStatus().equals(jobStatus)) {
@@ -151,6 +191,8 @@ public class SysTaskServiceImpl extends BaseService implements SysTaskService {
             task.setJobStatus(JobStatus.RUNNING.getCode());
             quartzManager.addJob(task);
         }
+        task.setUpdateUser(SecurityUtil.getSysUserDetail().getUsername());
+        task.setUpdateAt(LocalDateTime.now());
         sysTaskMapper.updateSysTask(task);
     }
 }

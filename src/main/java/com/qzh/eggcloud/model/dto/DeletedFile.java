@@ -1,4 +1,4 @@
-package com.qzh.eggcloud.model.auth.dto;
+package com.qzh.eggcloud.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

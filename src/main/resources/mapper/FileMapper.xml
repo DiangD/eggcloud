@@ -215,7 +215,7 @@
         and deleted = 0
     </select>
 
-    <select id="findFilesFoldersDeletedByQuery" resultType="com.qzh.eggcloud.model.auth.dto.DeletedFile">
+    <select id="findFilesFoldersDeletedByQuery" resultType="com.qzh.eggcloud.model.dto.DeletedFile">
         select id as file_id ,name as filename ,
         content_type,extension,modify_at as delete_at,size,is_folder
         from sys_file

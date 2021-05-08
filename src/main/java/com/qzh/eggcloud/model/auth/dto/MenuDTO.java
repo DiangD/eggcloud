@@ -8,6 +8,7 @@ import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -35,6 +36,7 @@ public class MenuDTO implements Comparable<MenuDTO> {
     /**
      * 菜单名称
      */
+    @NotBlank(message = "菜单名称不能为空")
     private String name;
 
     /**
@@ -60,7 +62,6 @@ public class MenuDTO implements Comparable<MenuDTO> {
     /**
      * 权重
      */
-    @NotBlank(message = "菜单名称不能为空")
     private Integer weight;
 
 
@@ -91,11 +92,13 @@ public class MenuDTO implements Comparable<MenuDTO> {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createAt;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
     @JsonSerialize(using = LocalDateTimeSerializer.class)
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)
+    @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateAt;
 
     @Override

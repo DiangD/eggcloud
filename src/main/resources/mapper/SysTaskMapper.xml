@@ -18,7 +18,7 @@
         insert into sys_task(job_name, description, cron_expression, bean_class, job_status, job_group, create_user,
                              create_at, update_user, update_at)
         VALUES (#{task.jobName}, #{task.description}, #{task.cronExpression}, #{task.beanClass}, #{task.jobStatus},
-                #{task.jobGroup}, #{task.createUser}, #{task.createAt}, #{task.updateAt})
+                #{task.jobGroup}, #{task.createUser}, #{task.createAt}, #{task.updateUser}, #{task.updateAt})
     </insert>
 
     <update id="updateSysTask">
@@ -80,5 +80,83 @@
            or instr(bean_class, #{key}) > 0
            or instr(job_group, #{key}) > 0
         order by create_at desc
+    </select>
+
+    <select id="findByQuery" resultType="com.qzh.eggcloud.model.dto.TaskDTO">
+        select id,
+               job_name,
+               description,
+               cron_expression,
+               bean_class,
+               job_status,
+               job_group,
+               create_user,
+               create_at,
+               update_user,
+               update_at
+        from sys_task
+        <where>
+            <if test="query.jobName != null and query.jobName != ''">
+                instr(job_name, #{query.jobName}) > 0
+            </if>
+            <if test="query.description != null and query.description != ''">
+                and instr(description, #{query.description}) > 0
+            </if>
+            <if test="query.jobGroup != null and query.jobGroup != ''">
+                and instr(job_group, #{query.jobGroup}) > 0
+            </if>
+        </where>
+        <if test="query.sortProp != null and query.sortProp != ''">
+            order by ${query.sortProp}
+        </if>
+        <if test="query.sortOrder != null and query.sortOrder != ''">
+            ${query.sortOrder}
+        </if>
+    </select>
+
+    <select id="findCountByName" resultType="int">
+        select count(job_name)
+        from sys_task
+        where job_name = #{jobName}
+    </select>
+
+    <select id="findCountByBeanClass" resultType="int">
+        select count(bean_class)
+        from sys_task
+        where bean_class = #{beanClass}
+    </select>
+
+    <select id="findByName" resultType="com.qzh.eggcloud.model.SysTask">
+        select id,
+               job_name,
+               description,
+               cron_expression,
+               bean_class,
+               job_status,
+               job_group,
+               create_user,
+               create_at,
+               update_user,
+               update_at
+        from sys_task
+        where job_name = #{jobName}
+        limit 1
+    </select>
+
+    <select id="findByBeanClass" resultType="com.qzh.eggcloud.model.SysTask">
+        select id,
+        job_name,
+        description,
+        cron_expression,
+        bean_class,
+        job_status,
+        job_group,
+        create_user,
+        create_at,
+        update_user,
+        update_at
+        from sys_task
+        where bean_class = #{beanClass}
+        limit 1
     </select>
 </mapper>

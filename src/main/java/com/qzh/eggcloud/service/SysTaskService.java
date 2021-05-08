@@ -1,24 +1,25 @@
 package com.qzh.eggcloud.service;
 
 import com.github.pagehelper.PageInfo;
+import com.qzh.eggcloud.common.exception.BaseException;
+import com.qzh.eggcloud.model.dto.TaskDTO;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.model.SysTask;
+import com.qzh.eggcloud.model.query.TaskQuery;
 import org.quartz.SchedulerException;
 
 public interface SysTaskService {
     SysTask findTaskById(Long id);
 
-    PageInfo<SysTask> findAll(PageEntity pageEntity);
+    PageInfo<TaskDTO> listTask(TaskQuery query, PageEntity pageEntity);
 
-    int addTask(SysTask task);
+    int addTask(TaskDTO task) throws BaseException;
 
-    int updateTask(SysTask task) throws SchedulerException;
-
-    int saveTask(SysTask task) throws SchedulerException;
+    int updateTask(TaskDTO task) throws SchedulerException, BaseException;
 
     int deleteTask(Long id);
 
-    int batchDeleteTasks(Long[] ids);
+    int batchDeleteTasks(Long[] ids) throws BaseException, SchedulerException;
 
     void readSchedule() throws Exception;
 
@@ -30,8 +31,6 @@ public interface SysTaskService {
     void pause(SysTask task) throws SchedulerException;
 
     void resume(SysTask task) throws SchedulerException;
-
-    PageInfo<SysTask> findBySearchKey(String key, PageEntity pageEntity);
 
     void changeTaskStatus(Long jobId, String jobStatus) throws Exception;
 }

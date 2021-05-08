@@ -24,7 +24,7 @@ import java.util.List;
  **/
 @Data
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor()
 public class SysRoleEntity implements Serializable {
     private static final long serialVersionUID = -2142270411895214025L;
     /**

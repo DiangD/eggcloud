@@ -35,7 +35,7 @@
         </trim>
     </insert>
 
-    <select id="findShareFileByAccessKey" resultType="com.qzh.eggcloud.model.auth.dto.ShareDTO">
+    <select id="findShareFileByAccessKey" resultType="com.qzh.eggcloud.model.dto.ShareDTO">
         select access_key, store_id, file_id, is_folder, has_verify, code, create_at, expire_at
         from share_file
         where access_key = #{accessKey}
@@ -77,7 +77,7 @@
           and expire_at is not null
     </delete>
 
-    <select id="findShareByQuery" resultType="com.qzh.eggcloud.model.auth.dto.ShareDTO">
+    <select id="findShareByQuery" resultType="com.qzh.eggcloud.model.dto.ShareDTO">
         select sf.*,s.name as filename,s.content_type,s.extension,s.is_folder
         from share_file sf left join sys_file s on sf.file_id = s.id
         <where>

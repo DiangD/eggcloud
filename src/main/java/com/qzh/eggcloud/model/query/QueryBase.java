@@ -1,5 +1,7 @@
 package com.qzh.eggcloud.model.query;
 
+import com.google.common.base.CaseFormat;
+
 /**
  * @ClassName QueryBase
  * @Author DiangD
@@ -19,7 +21,7 @@ public class QueryBase {
     }
 
     public void setSortProp(String sortProp) {
-        this.sortProp = sortProp;
+        this.sortProp = CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, sortProp);
     }
 
     public String getSortOrder() {

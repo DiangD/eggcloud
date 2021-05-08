@@ -8,7 +8,7 @@ import com.qzh.eggcloud.common.resp.ErrorCode;
 import com.qzh.eggcloud.common.utils.VilifyCodeUtil;
 import com.qzh.eggcloud.model.ShareFile;
 import com.qzh.eggcloud.model.SysFile;
-import com.qzh.eggcloud.model.auth.dto.ShareDTO;
+import com.qzh.eggcloud.model.dto.ShareDTO;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.model.query.ShareQuery;
 import com.qzh.eggcloud.service.ShareFileService;

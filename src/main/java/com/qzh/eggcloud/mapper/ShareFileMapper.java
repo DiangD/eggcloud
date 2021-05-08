@@ -1,7 +1,7 @@
 package com.qzh.eggcloud.mapper;
 
 import com.qzh.eggcloud.model.ShareFile;
-import com.qzh.eggcloud.model.auth.dto.ShareDTO;
+import com.qzh.eggcloud.model.dto.ShareDTO;
 import com.qzh.eggcloud.model.query.ShareQuery;
 import org.apache.ibatis.annotations.Param;
 

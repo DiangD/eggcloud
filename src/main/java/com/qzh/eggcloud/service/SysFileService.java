@@ -3,7 +3,7 @@ package com.qzh.eggcloud.service;
 import com.github.pagehelper.PageInfo;
 import com.qzh.eggcloud.common.exception.BaseException;
 import com.qzh.eggcloud.model.SysFile;
-import com.qzh.eggcloud.model.auth.dto.DeletedFile;
+import com.qzh.eggcloud.model.dto.DeletedFile;
 import com.qzh.eggcloud.model.query.DeletedQuery;
 import com.qzh.eggcloud.model.query.FileQuery;
 import com.qzh.eggcloud.model.query.FileSearch;

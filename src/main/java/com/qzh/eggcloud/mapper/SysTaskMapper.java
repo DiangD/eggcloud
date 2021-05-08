@@ -1,6 +1,8 @@
 package com.qzh.eggcloud.mapper;
 
 import com.qzh.eggcloud.model.SysTask;
+import com.qzh.eggcloud.model.dto.TaskDTO;
+import com.qzh.eggcloud.model.query.TaskQuery;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Repository;
 
@@ -20,5 +22,14 @@ public interface SysTaskMapper {
 
     int batchDelete(Long[] ids);
 
-    List<SysTask> findBySearchKey(@Param("key") String key);
+    List<TaskDTO> findByQuery(@Param("query") TaskQuery query);
+
+    int findCountByName(@Param("jobName") String jobName);
+
+    SysTask findByName(@Param("jobName") String jobName);
+
+    int findCountByBeanClass(@Param("beanClass") String beanClass);
+
+    SysTask findByBeanClass(@Param("beanClass") String beanClass);
+
 }

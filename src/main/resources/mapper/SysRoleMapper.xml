@@ -6,4 +6,119 @@
         from sys_role
         where role_name = #{roleName}
     </select>
+
+    <delete id="deleteByMenuIds">
+        delete
+        from sys_role_menu
+                where menu_id in
+        <foreach collection="menuIds" item="menuId" open="(" close=")" separator=",">
+            #{menuId}
+        </foreach>
+    </delete>
+
+    <resultMap id="SysRoleDetail" type="com.qzh.eggcloud.model.auth.dto.RoleDTO">
+        <id property="roleId" column="role_id"/>
+        <result property="roleName" column="role_name"/>
+        <result property="remark" column="remark"/>
+        <result property="createAt" column="create_at"/>
+        <result property="updateAt" column="update_at"/>
+        <collection property="menuIds" ofType="java.lang.Long" fetchType="eager"
+                    column="role_Id" select="findMenuIdByRoleId"/>
+    </resultMap>
+
+    <select id="findByQuery" resultMap="SysRoleDetail">
+        select role_id, role_name, remark, create_at, update_at
+        from sys_role
+        <where>
+            <if test="query.roleName != null and query.roleName != ''">
+                instr(role_name, #{query.roleName}) > 0
+            </if>
+            <if test="query.remark != null and query.remark != ''">
+                and instr(remark, #{query.remark}) > 0
+            </if>
+        </where>
+        <if test="query.sortProp != null and query.sortProp != ''">
+            order by ${query.sortProp}
+        </if>
+        <if test="query.sortOrder != null and query.sortOrder != ''">
+            ${query.sortOrder}
+        </if>
+    </select>
+
+    <select id="findMenuIdByRoleId" resultType="Long">
+        select distinct menu_id
+        from sys_role_menu
+        where role_id = #{roleId}
+    </select>
+
+    <select id="findCountByName" resultType="int">
+        select count(role_name)
+        from sys_role
+        where role_name = #{roleName}
+    </select>
+
+    <insert id="insertRole" useGeneratedKeys="true" keyProperty="role.roleId">
+        insert into sys_role(role_name, remark, create_at, update_at)
+        values (#{role.roleName}, #{role.remark}, #{role.createAt}, #{role.updateAt})
+    </insert>
+
+    <select id="findByName" resultType="com.qzh.eggcloud.model.auth.SysRoleEntity">
+        select role_id, role_name, remark, create_at, update_at
+        from sys_role
+        where role_name = #{roleName}
+        limit 1
+    </select>
+
+    <update id="updateRole">
+        update sys_role
+        <set>
+            <if test="role.roleName != null and role.roleName != ''">
+                role_name = #{role.roleName},
+            </if>
+            <if test="role.remark != null and role.remark != ''">
+                remark = #{role.remark},
+            </if>
+            <if test="role.updateAt != null">
+                update_at = #{role.updateAt},
+            </if>
+        </set>
+        where role_id = #{role.roleId}
+    </update>
+
+    <select id="findMenuIdsByRoleId" resultType="java.lang.Long">
+        select distinct menu_id
+        from sys_role_menu
+        where role_id = #{roleId}
+    </select>
+
+    <delete id="deleteById">
+        delete
+        from sys_role_menu
+        where role_id = #{roleId}
+    </delete>
+
+    <insert id="insertRoleMenu">
+        insert into sys_role_menu(role_id, menu_id) values
+        <foreach collection="role.menuIds" item="menuId" separator=",">
+            (#{role.roleId}, #{menuId})
+        </foreach>
+    </insert>
+
+    <delete id="deleteByIds">
+        delete
+        from sys_role
+                where role_id in
+        <foreach collection="ids" item="role_id" open="(" close=")" separator=",">
+            #{role_id}
+        </foreach>
+    </delete>
+
+    <delete id="deleteRoleMenuByRoleIds">
+        delete
+        from sys_role_menu
+                where role_id in
+        <foreach collection="ids" item="role_id" open="(" close=")" separator=",">
+            #{role_id}
+        </foreach>
+    </delete>
 </mapper>

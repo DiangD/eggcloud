@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.qzh.eggcloud.mapper.SysMenuMapper">
+    <resultMap id="SysRoleMenuDetail" type="com.qzh.eggcloud.model.auth.dto.MenuDTO">
+        <id property="menuId" column="menu_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="name" column="name"/>
+        <result property="permission" column="permission"/>
+        <result property="path" column="path"/>
+        <result property="component" column="component"/>
+        <result property="icon" column="icon"/>
+        <result property="weight" column="weight"/>
+        <result property="menuType" column="menu_type"/>
+        <result property="hide" column="hide"/>
+        <result property="createAt" column="create_at"/>
+        <result property="updateAt" column="update_at"/>
+        <collection property="children" fetchType="eager" ofType="com.qzh.eggcloud.model.auth.dto.MenuDTO"
+                    column="menu_id" select="findChildRoleMenusByParentId"/>
+    </resultMap>
+
     <resultMap id="SysMenuDetail" type="com.qzh.eggcloud.model.auth.dto.MenuDTO">
         <id property="menuId" column="menu_id"/>
         <result property="parentId" column="parent_id"/>
@@ -15,11 +32,11 @@
         <result property="createAt" column="create_at"/>
         <result property="updateAt" column="update_at"/>
         <collection property="children" fetchType="eager" ofType="com.qzh.eggcloud.model.auth.dto.MenuDTO"
-                    column="menu_id" select="findChildMenusByParentId"/>
+                    column="menu_id" select="findMenusByParentId"/>
     </resultMap>
 
 
-    <select id="findMenuTreeByRoleIds" resultMap="SysMenuDetail">
+    <select id="findMenuTreeByRoleIds" resultMap="SysRoleMenuDetail">
         select *
         from sys_menu sm
                      left join sys_role_menu srm on sm.menu_id = srm.menu_id
@@ -30,7 +47,7 @@
         </foreach>
     </select>
 
-    <select id="findChildMenusByParentId" resultMap="SysMenuDetail">
+    <select id="findChildRoleMenusByParentId" resultMap="SysRoleMenuDetail">
         select distinct sm.*
         from sys_menu sm
                      join sys_role_menu srm on sm.menu_id = srm.menu_id
@@ -40,19 +57,178 @@
     <select id="findByUserId" resultType="com.qzh.eggcloud.model.auth.SysMenuEntity">
         select distinct sm.*
         from sys_user_role sur
-        left join sys_role_menu srm on sur.role_id = srm.role_id
-        left join sys_menu sm on srm.menu_id = sm.menu_id
+                     left join sys_role_menu srm on sur.role_id = srm.role_id
+                     left join sys_menu sm on srm.menu_id = sm.menu_id
         where sur.user_id = #{userId}
         order by weight desc
     </select>
 
-    <select id="findMenuTreeByUserId" resultMap="SysMenuDetail">
+    <select id="findMenuTreeByUserId" resultMap="SysRoleMenuDetail">
         select distinct sm.*
         from sys_user_role sur
-        left join sys_role_menu srm on sur.role_id = srm.role_id
-        left join sys_menu sm on srm.menu_id = sm.menu_id
+                     left join sys_role_menu srm on sur.role_id = srm.role_id
+                     left join sys_menu sm on srm.menu_id = sm.menu_id
         where sur.user_id = #{userId}
-        and sm.parent_id is null
+          and sm.parent_id is null
         order by weight desc
     </select>
+
+    <select id="findMenuTreeByQuery" resultMap="SysMenuDetail">
+        select distinct *
+        from sys_menu
+        <where>
+            <if test="query.name != null and query.name != ''">
+                instr(name, #{query.name}) > 0
+            </if>
+            <if test="query.path != null and query.path != ''">
+                and instr(path, #{query.path}) > 0
+            </if>
+            <if test="1 == 1">
+                and parent_id is null
+            </if>
+        </where>
+        <if test="query.sortProp != null and query.sortProp != ''">
+            order by ${query.sortProp}
+        </if>
+        <if test="query.sortOrder != null and query.sortOrder != ''">
+            ${query.sortOrder}
+        </if>
+    </select>
+
+    <select id="findCountByName" resultType="int">
+        select count(name)
+        from sys_menu
+        where name = #{name}
+    </select>
+
+    <select id="findById" resultType="com.qzh.eggcloud.model.auth.SysMenuEntity">
+        select menu_id,
+               parent_id,
+               name,
+               permission,
+               path,
+               component,
+               icon,
+               weight,
+               menu_type,
+               hide,
+               create_at,
+               update_at
+        from sys_menu
+        where menu_id = #{id}
+    </select>
+
+    <insert id="insertMenu" keyProperty="menu.menuId" useGeneratedKeys="true">
+        insert into sys_menu(parent_id, name, permission, path,
+                             component, icon, weight, menu_type,
+                             hide, update_at, create_at)
+        values (#{menu.parentId}, #{menu.name}, #{menu.permission},
+                #{menu.path}, #{menu.component}, #{menu.icon}, #{menu.weight}, #{menu.menuType},
+                #{menu.hide}, #{menu.updateAt}, #{menu.createAt})
+    </insert>
+
+    <update id="updateMenu">
+        update sys_menu
+        <set>
+            <if test="menu.parentId != null">
+                parent_id = #{menu.parentId},
+            </if>
+            <if test="menu.name != null and menu.name != ''">
+                name=#{menu.name},
+            </if>
+            <if test="menu.permission != null and menu.permission != ''">
+                permission = #{menu.permission},
+            </if>
+            <if test="menu.path != null and menu.path != ''">
+                path=#{menu.path},
+            </if>
+            <if test="menu.component != null and menu.component != ''">
+                component = #{menu.component},
+            </if>
+            <if test="menu.icon != null and menu.icon != ''">
+                icon =#{menu.icon},
+            </if>
+            <if test="menu.weight != null">
+                weight = #{menu.weight},
+            </if>
+            <if test="menu.menuType != null">
+                menu_type = #{menu.menuType},
+            </if>
+            <if test="menu.hide != null">
+                hide = #{menu.hide},
+            </if>
+            <if test="menu.updateAt != null">
+                update_at = #{menu.updateAt}
+            </if>
+        </set>
+        where menu_id = #{menu.menuId}
+    </update>
+
+    <select id="findByName" resultType="com.qzh.eggcloud.model.auth.SysMenuEntity">
+        select menu_id,
+               parent_id,
+               name,
+               permission,
+               path,
+               component,
+               icon,
+               weight,
+               menu_type,
+               hide,
+               create_at,
+               update_at
+        from sys_menu
+        where name = #{name}
+        limit 1
+    </select>
+
+    <select id="findByIds" resultType="com.qzh.eggcloud.model.auth.SysMenuEntity">
+        select menu_id,
+               parent_id,
+               name,
+               permission,
+               path,
+               component,
+               icon,
+               weight,
+               menu_type,
+               hide
+        from sys_menu
+                where menu_id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="findByParentIds" resultType="com.qzh.eggcloud.model.auth.SysMenuEntity">
+        select menu_id,
+               parent_id,
+               name,
+               permission,
+               path,
+               component,
+               icon,
+               weight,
+               menu_type,
+               hide
+        from sys_menu
+                where sys_menu.parent_id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+    <select id="findMenusByParentId" resultMap="SysMenuDetail">
+        select distinct *
+        from sys_menu
+        where parent_id = #{pid}
+    </select>
+
+    <delete id="deleteByIds">
+        delete
+        from sys_menu
+                where menu_id in
+        <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
 </mapper>

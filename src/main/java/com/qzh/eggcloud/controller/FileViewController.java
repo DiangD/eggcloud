@@ -5,7 +5,7 @@ import com.qzh.eggcloud.auth.SysUserDetail;
 import com.qzh.eggcloud.common.utils.RespUtil;
 import com.qzh.eggcloud.common.utils.SecurityUtil;
 import com.qzh.eggcloud.model.SysFile;
-import com.qzh.eggcloud.model.auth.dto.ShareDTO;
+import com.qzh.eggcloud.model.dto.ShareDTO;
 import com.qzh.eggcloud.service.ShareFileService;
 import com.qzh.eggcloud.service.impl.SysFileServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;

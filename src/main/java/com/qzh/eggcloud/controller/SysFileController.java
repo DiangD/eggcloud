@@ -15,14 +15,13 @@ import com.qzh.eggcloud.dfs.EggCom;
 import com.qzh.eggcloud.dfs.model.EggFileInfo;
 import com.qzh.eggcloud.dfs.utils.EggFileUtil;
 import com.qzh.eggcloud.model.SysFile;
-import com.qzh.eggcloud.model.auth.dto.DeletedFile;
+import com.qzh.eggcloud.model.dto.DeletedFile;
 import com.qzh.eggcloud.model.query.DeletedQuery;
 import com.qzh.eggcloud.model.query.FileQuery;
 import com.qzh.eggcloud.model.query.FileSearch;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.service.FileStoreService;
 import com.qzh.eggcloud.service.impl.SysFileServiceImpl;
-import com.sun.xml.internal.ws.api.model.ExceptionType;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.lang3.StringUtils;
@@ -100,7 +99,7 @@ public class SysFileController {
     @PostMapping("/upload")
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
     public ResponseEntity<JsonResult<Object>> upload(@RequestParam("file") MultipartFile file, Long userId,
-                                                     @RequestParam(defaultValue = "0") Long parentId,
+                                                     @RequestParam(defaultValue = "/") String currentDirectory,
                                                      @RequestHeader HttpHeaders headers) throws IOException, BaseException {
 
         SysUserDetail userDetail = SecurityUtil.getSysUserDetail();
@@ -153,6 +152,7 @@ public class SysFileController {
                     .contentType(contentType)
                     .extension(FileUtil.extName(file.getOriginalFilename()))
                     .thumbnail(thumbnail)
+                    .path(sysFileService.getUserDirectory(currentDirectory))
                     .modifyAt(LocalDateTime.now())
                     .createAt(LocalDateTime.now())
                     .build();
@@ -265,7 +265,7 @@ public class SysFileController {
 
     @GetMapping("/packageDownload")
     @PreAuthorize("{hasAnyRole('ROLE_USER','ROLE_ADMIN')&&@SecurityUtil.isLoginUser(#userId)}")
-    public void packageDownload(HttpServletRequest request, HttpServletResponse response, Long userId,Long[] fileIds,String token) throws BaseException, IOException {
+    public void packageDownload(HttpServletRequest request, HttpServletResponse response, Long userId, Long[] fileIds, String token) throws BaseException, IOException {
         if (fileIds != null && fileIds.length > 0) {
             List<Long> fileIdList = Arrays.asList(fileIds);
             sysFileService.packageDownload(request, response, fileIdList);

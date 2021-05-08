@@ -1,7 +1,7 @@
 package com.qzh.eggcloud.mapper;
 
 import com.qzh.eggcloud.model.SysFile;
-import com.qzh.eggcloud.model.auth.dto.DeletedFile;
+import com.qzh.eggcloud.model.dto.DeletedFile;
 import com.qzh.eggcloud.model.query.DeletedQuery;
 import com.qzh.eggcloud.model.query.FileQuery;
 import com.qzh.eggcloud.model.query.FileSearch;

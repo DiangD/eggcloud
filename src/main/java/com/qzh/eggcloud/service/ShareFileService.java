@@ -4,7 +4,7 @@ import com.github.pagehelper.PageInfo;
 import com.qzh.eggcloud.common.exception.BaseException;
 import com.qzh.eggcloud.model.ShareFile;
 import com.qzh.eggcloud.model.SysFile;
-import com.qzh.eggcloud.model.auth.dto.ShareDTO;
+import com.qzh.eggcloud.model.dto.ShareDTO;
 import com.qzh.eggcloud.model.query.PageEntity;
 import com.qzh.eggcloud.model.query.ShareQuery;
 
