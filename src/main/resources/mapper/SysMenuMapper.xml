@@ -14,8 +14,9 @@
         <result property="hide" column="hide"/>
         <result property="createAt" column="create_at"/>
         <result property="updateAt" column="update_at"/>
+        <result property="userId" column="user_id"/>
         <collection property="children" fetchType="eager" ofType="com.qzh.eggcloud.model.auth.dto.MenuDTO"
-                    column="menu_id" select="findChildRoleMenusByParentId"/>
+                    column="{userId=user_id,parentId=menu_id}" select="findChildRoleMenusByParentId"/>
     </resultMap>
 
     <resultMap id="SysMenuDetail" type="com.qzh.eggcloud.model.auth.dto.MenuDTO">
@@ -48,10 +49,13 @@
     </select>
 
     <select id="findChildRoleMenusByParentId" resultMap="SysRoleMenuDetail">
-        select distinct sm.*
+        select distinct sm.*, sur.user_id
         from sys_menu sm
-                     join sys_role_menu srm on sm.menu_id = srm.menu_id
-        where parent_id = #{pid}
+                     left join sys_role_menu srm on sm.menu_id = srm.menu_id
+                     left join sys_user_role sur on srm.role_id = sur.role_id
+        where sur.user_id = #{userId}
+          and sm.parent_id =#{parentId}
+        order by weight desc
     </select>
 
     <select id="findByUserId" resultType="com.qzh.eggcloud.model.auth.SysMenuEntity">
@@ -64,10 +68,10 @@
     </select>
 
     <select id="findMenuTreeByUserId" resultMap="SysRoleMenuDetail">
-        select distinct sm.*
-        from sys_user_role sur
-                     left join sys_role_menu srm on sur.role_id = srm.role_id
-                     left join sys_menu sm on srm.menu_id = sm.menu_id
+        select distinct sm.*, sur.user_id
+        from sys_menu sm
+                     left join sys_role_menu srm on sm.menu_id = srm.menu_id
+                     left join sys_user_role sur on srm.role_id = sur.role_id
         where sur.user_id = #{userId}
           and sm.parent_id is null
         order by weight desc

@@ -31,28 +31,28 @@ public class RoleController {
     private SysRoleService roleService;
 
     @GetMapping("/list")
-    @PreAuthorize("{hasAnyRole('ROLE_SUPER_ADMIN','ROLE_ADMIN')}")
+    @PreAuthorize("{hasPermission('/role/list','sys:role:list')}")
     public ResponseEntity<Object> roleList(RoleQuery query, PageEntity pageEntity) {
         PageInfo<RoleDTO> roles = roleService.listRoles(query, pageEntity);
         return ResponseEntity.ok(RespUtil.success(roles));
     }
 
     @PostMapping("/add")
-    @PreAuthorize("{hasAnyRole('ROLE_SUPER_ADMIN','ROLE_ADMIN')}")
+    @PreAuthorize("{hasPermission('/role/add','sys:role:add')}")
     public ResponseEntity<Object> addRole(@ModelAttribute @Validated RoleDTO role) throws BaseException {
         roleService.addRole(role);
         return ResponseEntity.ok(RespUtil.success(null));
     }
 
     @PostMapping("/edit")
-    @PreAuthorize("{hasPermission('/role/edit','admin:role:edit')}")
+    @PreAuthorize("{hasPermission('/role/edit','sys:role:edit')}")
     public ResponseEntity<Object> updateRole(@ModelAttribute @Validated RoleDTO role) throws BaseException {
         roleService.updateRole(role);
         return ResponseEntity.ok(RespUtil.success(null));
     }
 
     @DeleteMapping("/delete")
-    @PreAuthorize("{hasPermission('/role/delete','admin:role:delete')}")
+    @PreAuthorize("{hasPermission('/role/delete','sys:role:delete')}")
     public ResponseEntity<Object> deleteRole(@RequestParam("roleIds") Long[] roleIds) {
         roleService.deleteRole(Arrays.asList(roleIds));
         return ResponseEntity.ok(RespUtil.success(null));

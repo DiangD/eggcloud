@@ -248,7 +248,7 @@
         select id,store_id,is_folder,create_at,modify_at,deleted
         from sys_file
         where deleted = 1
-          and date_sub(curdate(), interval 30 day) > modify_at limit 10000
+          and date_sub(now(), interval 10 day) > modify_at limit 10000
     </select>
 
 

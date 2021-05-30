@@ -101,6 +101,8 @@ public class MenuDTO implements Comparable<MenuDTO> {
     @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updateAt;
 
+    private Long userId;
+
     @Override
     public int compareTo(MenuDTO o) {
         return this.getWeight().compareTo(o.getWeight());
